@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>OG Checker — настройки</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <h1>Настройки OG Checker</h1>
+
+  <section>
+    <label class="switch-row">
+      <input type="checkbox" id="enabled" />
+      <span>Расширение включено</span>
+    </label>
+  </section>
+
+  <section>
+    <h2>Соцсети для проверки</h2>
+    <div id="networks" class="checks"></div>
+  </section>
+
+  <section>
+    <h2>Область проверки</h2>
+    <label class="radio-row">
+      <input type="radio" name="scopeMode" value="single" />
+      <span>Только указанный домен</span>
+    </label>
+    <div class="indent" id="singleBox">
+      <input type="text" id="singleDomain" placeholder="например, localhost:3000" />
+      <button id="useCurrentBtn" type="button">Взять из текущей вкладки</button>
+    </div>
+
+    <label class="radio-row">
+      <input type="radio" name="scopeMode" value="blacklist" />
+      <span>Все сайты, кроме списка (чёрный список; пустой = проверять везде)</span>
+    </label>
+    <div class="indent">
+      <textarea id="blacklist" rows="4" placeholder="по одному шаблону на строку&#10;example.com&#10;*.google.com"></textarea>
+    </div>
+
+    <label class="radio-row">
+      <input type="radio" name="scopeMode" value="whitelist" />
+      <span>Только сайты из списка (белый список)</span>
+    </label>
+    <div class="indent">
+      <textarea id="whitelist" rows="4" placeholder="localhost&#10;localhost:5173&#10;*.dev.example.com"></textarea>
+    </div>
+    <p class="hint">Шаблон — host[:port]. «*» — любой фрагмент; шаблон без порта совпадает с любым портом.</p>
+  </section>
+
+  <section>
+    <h2>Серверная проверка</h2>
+    <label>Адрес сервера
+      <input type="text" id="serverUrl" placeholder="http://localhost:3000" />
+    </label>
+    <label>Время жизни сессии, минут
+      <input type="number" id="serverTtl" min="1" max="120" step="1" />
+    </label>
+    <h3>Сохранение картинок</h3>
+    <label class="radio-row">
+      <input type="radio" name="imageMode" value="all" />
+      <span>Сохранять все og-картинки на сервере</span>
+    </label>
+    <label class="radio-row">
+      <input type="radio" name="imageMode" value="unavailable" />
+      <span>Сохранять только недоступные извне (localhost и приватные адреса)</span>
+    </label>
+    <label class="radio-row">
+      <input type="radio" name="imageMode" value="none" />
+      <span>Не сохранять картинки</span>
+    </label>
+  </section>
+
+  <div class="footer">
+    <button id="saveBtn" class="primary">Сохранить</button>
+    <span id="savedNote" hidden>Сохранено ✓</span>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

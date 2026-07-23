@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>OG Checker</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>OG Checker</h1>
+    <label class="switch" title="Включить/выключить расширение">
+      <input type="checkbox" id="enabledToggle" />
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <main>
+    <section id="statusSection">
+      <div id="statusLine" class="status">Загрузка…</div>
+      <div id="report"></div>
+      <button id="recheckBtn" class="ghost">Проверить снова</button>
+    </section>
+
+    <hr />
+
+    <section id="serverSection">
+      <h2>Серверная проверка</h2>
+      <div id="serverState" class="muted">Нет активной сессии</div>
+      <div id="sessionBox" hidden>
+        <a id="sessionLink" target="_blank" rel="noopener"></a>
+        <div class="timer"><span id="timer">–:–</span> до удаления</div>
+        <div class="row">
+          <button id="extendBtn">Продлить +15 мин</button>
+          <button id="stopBtn" class="danger">Остановить</button>
+        </div>
+      </div>
+      <button id="sendBtn">Отправить страницу на сервер</button>
+      <div id="serverError" class="error" hidden></div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="#" id="openOptions">Настройки</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "OG Checker",
+  "description": "Проверка OpenGraph разметки: локальная валидация и публикация предпросмотра на сервере",
+  "version": "0.1.0",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "dist/background.js",
+    "scripts": ["dist/background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "dist/popup/popup.html",
+    "default_title": "OG Checker"
+  },
+  "options_ui": {
+    "page": "dist/options/options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "og-checker@badfish.dev",
+      "strict_min_version": "115.0"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "og-checker-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Браузерное расширение OG Checker (Chrome/Firefox, MV3, TypeScript)",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"tests/*.test.ts\""
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/webextension-polyfill": "^0.12.1"
+  }
+}

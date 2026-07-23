@@ -1,0 +1,17 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      # PUBLIC_BASE_URL: https://og.example.com  # задать на публичном деплое
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Персистентность не нужна: сессии эфемерные (TTL 15 минут)
+    command: ["redis-server", "--save", "", "--appendonly", "no"]

@@ -1,0 +1,21 @@
+{
+  "name": "og-checker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Система проверки OpenGraph разметки: браузерное расширение + сервер предпросмотра",
+  "workspaces": [
+    "extension",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
