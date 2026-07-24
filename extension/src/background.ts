@@ -69,13 +69,14 @@ async function probeImage(url: string): Promise<ImageInfo> {
     if (!resp.ok) return { reachable: false };
     const blob = await resp.blob();
     if (!blob.type.startsWith('image/')) return { reachable: false };
+    const bytes = blob.size;
     try {
       const bmp = await createImageBitmap(blob);
-      const info: ImageInfo = { reachable: true, width: bmp.width, height: bmp.height };
+      const info: ImageInfo = { reachable: true, width: bmp.width, height: bmp.height, bytes };
       bmp.close();
       return info;
     } catch {
-      return { reachable: true }; // формат не декодируется (например, svg в FF)
+      return { reachable: true, bytes }; // формат не декодируется (например, svg в FF)
     }
   } catch {
     return { reachable: false };
@@ -142,6 +143,45 @@ browser.storage.onChanged.addListener((changes) => {
       if (tab.id != null) void recheckTab(tab.id);
     }
   });
+});
+
+/**
+ * Приводит badge вкладки в соответствие с текущими настройками.
+ * Вызывается при переключении вкладок — иначе значок «застревает»
+ * в состоянии, снятом при последней загрузке страницы.
+ */
+async function syncTab(tabId: number): Promise<void> {
+  const settings = await loadSettings();
+  if (!settings.enabled) {
+    let url = '';
+    try {
+      url = (await browser.tabs.get(tabId)).url ?? '';
+    } catch {
+      // вкладка закрыта
+    }
+    await setBadge(tabId, 'disabled');
+    await saveResult(tabId, { status: 'disabled', url });
+    return;
+  }
+  const stored = await getResult(tabId);
+  if (stored?.status === 'done') {
+    await setBadge(tabId, stored.report?.level ?? 'ok');
+    return;
+  }
+  if (stored?.status === 'skipped') {
+    await setBadge(tabId, 'skipped');
+    return;
+  }
+  if (stored?.status === 'busy') {
+    await setBadge(tabId, 'busy');
+    return;
+  }
+  // свежего результата нет (или он устарел после повторного включения) — перепроверяем
+  await recheckTab(tabId);
+}
+
+browser.tabs.onActivated.addListener(({ tabId }) => {
+  void syncTab(tabId);
 });
 
 // ---------------------------------------------------------------------------

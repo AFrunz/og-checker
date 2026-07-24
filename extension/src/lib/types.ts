@@ -55,6 +55,8 @@ export interface ImageInfo {
   reachable: boolean;
   width?: number;
   height?: number;
+  /** Физический размер файла в байтах. */
+  bytes?: number;
 }
 
 export type ImageInfoMap = Record<string, ImageInfo>;

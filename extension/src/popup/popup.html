@@ -6,41 +6,73 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <header>
-    <h1>OG Checker</h1>
-    <label class="switch" title="Включить/выключить расширение">
+  <header class="hdr">
+    <div class="brand">
+      <div class="title">OG Checker</div>
+      <div id="siteDomain" class="sub">—</div>
+    </div>
+    <label class="switch" title="Включить / выключить расширение">
       <input type="checkbox" id="enabledToggle" />
       <span class="slider"></span>
     </label>
   </header>
 
+  <div class="tabs">
+    <div class="track" role="tablist">
+      <button class="tab is-active" id="tabCheck" data-tab="check" type="button">Проверка</button>
+      <button class="tab" id="tabServer" data-tab="server" type="button">Сервер</button>
+    </div>
+  </div>
+
   <main>
-    <section id="statusSection">
+    <!-- Вкладка «Проверка» -->
+    <section class="panel is-active" id="panelCheck">
       <div id="statusLine" class="status">Загрузка…</div>
-      <div id="report"></div>
-      <button id="recheckBtn" class="ghost">Проверить снова</button>
+      <div id="report" class="report"></div>
+      <div class="actions">
+        <button id="recheckBtn" class="btn btn-outline btn-block" type="button">Проверить снова</button>
+        <button id="siteToggleBtn" class="btn btn-ghost btn-block" type="button" hidden>Отключить для этого сайта</button>
+      </div>
     </section>
 
-    <hr />
+    <!-- Вкладка «Сервер» -->
+    <section class="panel" id="panelServer" hidden>
+      <div class="srv-head">
+        <div class="srv-title">Серверная проверка</div>
+        <div class="srv-sub">Публичная ссылка, по которой краулеры соцсетей увидят страницу</div>
+      </div>
 
-    <section id="serverSection">
-      <h2>Серверная проверка</h2>
-      <div id="serverState" class="muted">Нет активной сессии</div>
-      <div id="sessionBox" hidden>
-        <a id="sessionLink" target="_blank" rel="noopener"></a>
-        <div class="timer"><span id="timer">–:–</span> до удаления</div>
+      <div id="sessionBox" class="session">
+        <div class="link-row">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l6-6M10.5 6.5l1-1a4 4 0 0 1 6 6l-1 1M13.5 17.5l-1 1a4 4 0 0 1-6-6l1-1"/></svg>
+          <a id="sessionLink" class="link" target="_blank" rel="noopener"></a>
+          <button id="copyBtn" class="icon-btn" type="button" title="Скопировать ссылку">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div class="timer-row">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+          <span id="timer" class="timer-val">–:–</span>
+          <span class="timer-cap">до удаления сессии</span>
+        </div>
         <div class="row">
-          <button id="extendBtn">Продлить +15 мин</button>
-          <button id="stopBtn" class="danger">Остановить</button>
+          <button id="extendBtn" class="btn btn-outline" type="button">Продлить +15 мин</button>
+          <button id="stopBtn" class="btn btn-danger" type="button">Остановить</button>
         </div>
       </div>
-      <button id="sendBtn">Отправить страницу на сервер</button>
+
+      <button id="sendBtn" class="btn btn-primary btn-block" type="button">Отправить страницу на сервер</button>
       <div id="serverError" class="error" hidden></div>
+      <div class="srv-note">Ссылка живёт 15 минут.</div>
     </section>
   </main>
 
-  <footer>
-    <a href="#" id="openOptions">Настройки</a>
+  <footer class="ftr">
+    <a href="#" id="openOptions" class="foot-link">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Настройки</span>
+    </a>
+    <span class="ver">v0.1</span>
   </footer>
 
   <script src="popup.js"></script>

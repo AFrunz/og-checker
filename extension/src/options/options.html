@@ -6,75 +6,110 @@
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
-  <h1>Настройки OG Checker</h1>
-
-  <section>
-    <label class="switch-row">
-      <input type="checkbox" id="enabled" />
-      <span>Расширение включено</span>
-    </label>
-  </section>
-
-  <section>
-    <h2>Соцсети для проверки</h2>
-    <div id="networks" class="checks"></div>
-  </section>
-
-  <section>
-    <h2>Область проверки</h2>
-    <label class="radio-row">
-      <input type="radio" name="scopeMode" value="single" />
-      <span>Только указанный домен</span>
-    </label>
-    <div class="indent" id="singleBox">
-      <input type="text" id="singleDomain" placeholder="например, localhost:3000" />
-      <button id="useCurrentBtn" type="button">Взять из текущей вкладки</button>
+  <div class="page">
+    <div class="head">
+      <h1>Настройки OG Checker</h1>
+      <p class="sub">Проверка OpenGraph-разметки в тестовом и локальном окружении</p>
     </div>
 
-    <label class="radio-row">
-      <input type="radio" name="scopeMode" value="blacklist" />
-      <span>Все сайты, кроме списка (чёрный список; пустой = проверять везде)</span>
+    <label class="tile toggle-tile">
+      <span class="tile-text">
+        <span class="tile-title">Расширение включено</span>
+        <span class="tile-desc">Глобально включает и выключает все проверки</span>
+      </span>
+      <span class="switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </span>
     </label>
-    <div class="indent">
-      <textarea id="blacklist" rows="4" placeholder="по одному шаблону на строку&#10;example.com&#10;*.google.com"></textarea>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Соцсети для проверки</h2>
+        <p class="sec-desc">Наборы обязательных и рекомендуемых тегов для каждой сети</p>
+      </div>
+      <div class="card">
+        <div id="networks" class="networks"></div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Область проверки</h2>
+        <p class="sec-desc">Оба списка хранятся отдельно и не сбрасываются при переключении режима</p>
+      </div>
+      <div class="card">
+        <label class="opt">
+          <input type="radio" name="scopeMode" value="blacklist" />
+          <span class="opt-text">
+            <span class="opt-title">Все сайты, кроме списка&nbsp; ·&nbsp; по умолчанию</span>
+            <span class="opt-desc">Чёрный список. Проверяем везде, кроме указанных доменов.</span>
+          </span>
+        </label>
+        <div class="indent">
+          <textarea id="blacklist" rows="3" placeholder="по одному шаблону на строку&#10;staging.internal&#10;*.ads.example.com"></textarea>
+        </div>
+
+        <label class="opt">
+          <input type="radio" name="scopeMode" value="whitelist" />
+          <span class="opt-text">
+            <span class="opt-title">Только сайты из списка</span>
+            <span class="opt-desc">Белый список. Проверяем только на указанных доменах.</span>
+          </span>
+        </label>
+        <div class="indent">
+          <textarea id="whitelist" rows="3" placeholder="localhost:3000&#10;*.dev.example.com"></textarea>
+        </div>
+
+        <p class="hint">Шаблон — host[:port]. «*» — любой фрагмент; шаблон без порта совпадает с любым портом.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Серверная проверка</h2>
+        <p class="sec-desc">Адрес сервера и что сохранять, чтобы краулеры увидели страницу</p>
+      </div>
+      <div class="card">
+        <label class="field">
+          <span class="field-label">Адрес сервера</span>
+          <input type="text" id="serverUrl" placeholder="http://localhost:3000" />
+        </label>
+
+        <div class="sub-block">
+          <div class="sec-head">
+            <h3>Сохранение картинок</h3>
+            <p class="sec-desc">Чтобы og:image были доступны внешнему краулеру</p>
+          </div>
+          <label class="opt">
+            <input type="radio" name="imageMode" value="unavailable" />
+            <span class="opt-text">
+              <span class="opt-title">Только недоступные извне</span>
+              <span class="opt-desc">localhost и приватные адреса. Публичные картинки не трогаем.</span>
+            </span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="imageMode" value="all" />
+            <span class="opt-text">
+              <span class="opt-title">Сохранять все og-картинки</span>
+              <span class="opt-desc">Все изображения выкладываются на сервер, ссылки переписываются.</span>
+            </span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="imageMode" value="none" />
+            <span class="opt-text">
+              <span class="opt-title">Не сохранять</span>
+              <span class="opt-desc">Раздаётся только HTML, ссылки на картинки остаются как есть.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <button id="saveBtn" class="btn btn-primary" type="button">Сохранить изменения</button>
+      <span id="savedNote" class="saved" hidden>✓ Сохранено</span>
     </div>
-
-    <label class="radio-row">
-      <input type="radio" name="scopeMode" value="whitelist" />
-      <span>Только сайты из списка (белый список)</span>
-    </label>
-    <div class="indent">
-      <textarea id="whitelist" rows="4" placeholder="localhost&#10;localhost:5173&#10;*.dev.example.com"></textarea>
-    </div>
-    <p class="hint">Шаблон — host[:port]. «*» — любой фрагмент; шаблон без порта совпадает с любым портом.</p>
-  </section>
-
-  <section>
-    <h2>Серверная проверка</h2>
-    <label>Адрес сервера
-      <input type="text" id="serverUrl" placeholder="http://localhost:3000" />
-    </label>
-    <label>Время жизни сессии, минут
-      <input type="number" id="serverTtl" min="1" max="120" step="1" />
-    </label>
-    <h3>Сохранение картинок</h3>
-    <label class="radio-row">
-      <input type="radio" name="imageMode" value="all" />
-      <span>Сохранять все og-картинки на сервере</span>
-    </label>
-    <label class="radio-row">
-      <input type="radio" name="imageMode" value="unavailable" />
-      <span>Сохранять только недоступные извне (localhost и приватные адреса)</span>
-    </label>
-    <label class="radio-row">
-      <input type="radio" name="imageMode" value="none" />
-      <span>Не сохранять картинки</span>
-    </label>
-  </section>
-
-  <div class="footer">
-    <button id="saveBtn" class="primary">Сохранить</button>
-    <span id="savedNote" hidden>Сохранено ✓</span>
   </div>
 
   <script src="options.js"></script>

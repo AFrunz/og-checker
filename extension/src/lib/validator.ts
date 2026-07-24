@@ -52,6 +52,13 @@ function checkTag(tags: MetaTag[], key: string, severity: Level, fallbacks?: Rec
   };
 }
 
+/** Человекочитаемый физический размер файла. */
+function formatBytes(bytes?: number): string | null {
+  if (bytes == null) return null;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+  return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+}
+
 /** Проверка картинки по правилам профиля; null — тега нет (это уже отражено в required/recommended). */
 function checkImage(
   rule: ImageRule,
@@ -69,13 +76,16 @@ function checkImage(
   if (rule.reachable && !info.reachable) {
     return { tag: rule.tag, status: 'error', value: url, message: 'картинка недоступна' };
   }
+  const size = formatBytes(info.bytes);
+  const sizeSuffix = size ? ` (${size})` : '';
+  const dims = info.width && info.height ? `${info.width}×${info.height}` : null;
   if (info.width && info.height) {
     if ((rule.minWidth && info.width < rule.minWidth) || (rule.minHeight && info.height < rule.minHeight)) {
       return {
         tag: rule.tag,
         status: 'error',
         value: url,
-        message: `картинка ${info.width}×${info.height} меньше минимума ${rule.minWidth}×${rule.minHeight}`
+        message: `картинка ${dims}${sizeSuffix} меньше минимума ${rule.minWidth}×${rule.minHeight}`
       };
     }
     if (
@@ -86,7 +96,7 @@ function checkImage(
         tag: rule.tag,
         status: 'warning',
         value: url,
-        message: `картинка ${info.width}×${info.height} меньше рекомендуемых ${rule.recommendedWidth}×${rule.recommendedHeight}`
+        message: `картинка ${dims}${sizeSuffix} меньше рекомендуемых ${rule.recommendedWidth}×${rule.recommendedHeight}`
       };
     }
   }
@@ -94,7 +104,7 @@ function checkImage(
     tag: rule.tag,
     status: 'ok',
     value: url,
-    message: info.width ? `картинка ок (${info.width}×${info.height})` : 'картинка доступна'
+    message: dims ? `картинка ок (${dims}${size ? `, ${size}` : ''})` : size ? `картинка доступна (${size})` : 'картинка доступна'
   };
 }
 
