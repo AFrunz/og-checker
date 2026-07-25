@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Система проверки OpenGraph разметки: браузерное расширение + сервер предпросмотра",
+  "license": "MIT",
   "workspaces": [
     "extension",
     "server"

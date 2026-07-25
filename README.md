@@ -1,79 +1,85 @@
 # OG Checker
 
-Система проверки OpenGraph разметки для тестового/локального окружения (TypeScript):
+*На русском — [README.ru.md](README.ru.md).*
 
-- **Расширение браузера** (Chrome, Firefox, MV3) — локальная проверка OG-тегов по профилям соцсетей с индикацией на иконке.
-- **Сервер** (Express + Redis) — публикует снятую страницу по временной публичной ссылке, чтобы её увидели краулеры соцсетей.
+An OpenGraph markup checker for local/staging environments (TypeScript):
 
-Подробное ТЗ — в [TZ.md](TZ.md).
+- **Browser extension** (Chrome, Firefox, MV3) — local validation of OG tags against per‑social‑network profiles, with a status badge on the toolbar icon.
+- **Server** (Express + Redis) — publishes a captured page at a temporary public URL so social crawlers can see it.
 
-## Структура
+Detailed spec (RU) — [TZ.md](TZ.md).
+
+## Structure
 
 ```
-extension/   расширение: TypeScript, MV3, сборка esbuild в dist/
-server/      Express-сервер (TypeScript) + Redis; в Docker собирается один cjs-бандл
+extension/   extension: TypeScript, MV3, esbuild → dist/
+server/      Express server (TypeScript) + Redis; a single cjs bundle in Docker
 ```
 
-## Быстрый старт
+## Quick start
 
 ```bash
-npm install          # зависимости обоих воркспейсов
-npm run build        # esbuild: extension/dist/* и server/dist/index.cjs
-npm run typecheck    # tsc --noEmit в обоих воркспейсах
-npm test             # node:test через tsx (юнит + интеграционные)
+npm install          # deps for both workspaces
+npm run build        # esbuild: extension/dist/* and server/dist/index.cjs
+npm run typecheck    # tsc --noEmit in both workspaces
+npm test             # node:test via tsx (unit + integration)
 ```
 
-### Сервер
+### Server
 
 ```bash
-docker compose up --build            # Express на :3000 + Redis  (npm run compose:up)
-# или локально (нужен запущенный Redis):
+docker compose up --build            # Express on :3000 + Redis  (npm run compose:up)
+# or locally (needs a running Redis):
 npm run dev --workspace server       # tsx watch
 ```
 
-**Podman** (вместо Docker) — та же конфигурация, менять ничего не нужно:
+**Podman** (instead of Docker) — same config, nothing to change:
 
 ```bash
 podman compose up --build            # npm run podman:up
-# при отсутствии провайдера compose:  podman-compose up --build
+# if no compose provider is present:  podman-compose up --build
 ```
 
-Работает в rootless-режиме: сервисы общаются по имени (`redis://redis:6379`), порт `3000` пробрасывается на хост, образ запускается от непривилегированного пользователя (`USER node`). Остановить — `npm run podman:down` (или `podman:down` / `compose:down`).
+Runs rootless: services talk to each other by name (`redis://redis:6379`), port `3000` is published to the host, and the image runs as a non‑privileged user (`USER node`). Stop with `npm run podman:down` (or `podman:down` / `compose:down`).
 
-Переменные окружения — см. [server/src/config.ts](server/src/config.ts) (`PORT`, `REDIS_URL`, `PUBLIC_BASE_URL`, лимиты, TTL).
+Environment variables — see [server/src/config.ts](server/src/config.ts) (`PORT`, `REDIS_URL`, `PUBLIC_BASE_URL`, limits, TTL).
 
-### Расширение
+### Extension
 
-Сначала сборка: `npm run build --workspace extension` (для разработки — `npm run watch --workspace extension`).
+Build first: `npm run build --workspace extension` (for development — `npm run watch --workspace extension`).
 
-**Chrome:** `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка `extension/`.
+**Chrome:** `chrome://extensions` → “Developer mode” → “Load unpacked” → the `extension/` folder.
 
-**Firefox:** `about:debugging#/runtime/this-firefox` → «Загрузить временное дополнение» → `extension/manifest.json`. В Firefox host-разрешения выдаются вручную: разрешите доступ к сайтам в настройках дополнения.
+**Firefox:** `about:debugging#/runtime/this-firefox` → “Load Temporary Add-on” → `extension/manifest.json`. In Firefox, host permissions are granted manually: allow site access in the add-on settings.
 
-## Как это работает
+## How it works
 
-### Локальная проверка
+### Local check
 
-Content script собирает `og:*` / `twitter:*` / `fb:*` теги и передаёт в background, который валидирует их по профилям соцсетей из [extension/src/lib/profiles.ts](extension/src/lib/profiles.ts) (обязательные теги → `error`, рекомендуемые → `warning`, доступность и размеры `og:image` проверяются fetch-ем). Результат — badge на иконке:
+The content script collects `og:*` / `twitter:*` / `fb:*` tags and passes them to the background, which validates them against the social‑network profiles in [extension/src/lib/profiles.ts](extension/src/lib/profiles.ts) (required tags → `error`, recommended → `warning`; `og:image` reachability and dimensions are checked via fetch). The result is shown as a toolbar badge:
 
-| Цвет | Значение |
+| Color | Meaning |
 |---|---|
-| серый | выключено / вне области проверки |
-| синий | проверка идёт |
-| зелёный | всё ок |
-| жёлтый | есть замечания |
-| красный | ошибки |
+| grey | disabled / out of scope |
+| blue | checking |
+| green | all good |
+| yellow | warnings |
+| red | errors |
 
-Область проверки: только указанный домен / все кроме чёрного списка / только белый список. Шаблон — `host[:port]`, `*` — wildcard (`*.example.com`, `localhost:3000`).
+Scope: **all sites except a blacklist** (default) / **only sites in a whitelist**. Pattern — `host[:port]`, `*` is a wildcard (`*.example.com`, `localhost:3000`). The popup also has a per‑site toggle (“enable/disable on this site”).
 
-### Серверная проверка
+### Server check
 
-По кнопке в popup расширение снимает отрендеренный HTML (после JS), при необходимости выгружает картинки (все / только недоступные извне / никакие), и отправляет на сервер. Сервер сохраняет всё в Redis с TTL 15 минут, переписывает URL картинок на публичные и возвращает ссылку `/s/{id}`. В popup показывается ссылка и таймер; сессию можно продлить или остановить — только владельцу (токен/кука).
+From a button in the popup, the extension captures the rendered HTML (after JS), optionally uploads images (all / only externally‑unreachable / none), and sends it to the server. The server stores everything in Redis with a 15‑minute TTL, rewrites image URLs to public ones, and returns a `/s/{id}` link. The popup shows the link and a countdown; the session can be extended or stopped — by the owner only (token/cookie).
 
-API: `POST /api/sessions`, `GET /api/sessions/:id`, `POST /api/sessions/:id/extend`, `DELETE /api/sessions/:id`, публично: `GET /s/:id`, `GET /s/:id/img/:n`.
+API: `POST /api/sessions`, `GET /api/sessions/:id`, `POST /api/sessions/:id/extend`, `DELETE /api/sessions/:id`; public: `GET /s/:id`, `GET /s/:id/img/:n`.
 
-Безопасность: снятая страница отдаётся с жёстким CSP (скрипты не исполняются), rate limiting и лимиты на размер — в конфиге. На публичном деплое статику стоит вынести на отдельный поддомен через reverse proxy (см. Этап 7 в TZ.md).
+Security: the captured page is served with a strict CSP (scripts don’t execute), plus rate limiting and size limits (in config). For public deployment, serve the static content from a separate subdomain via a reverse proxy (see Stage 7 in TZ.md).
 
-## Статус
+## Status
 
-MVP: этапы 0–6 из TZ.md реализованы на TypeScript (UI расширения — минимальный, без дизайна; иконки не отрисованы). Не закрыто: ручная проверка в Chrome/Firefox, публичный деплой (Этап 7).
+MVP: stages 0–6 from TZ.md implemented in TypeScript. The UI is themed (Soft dark — popup with Check/Server tabs and a per‑network accordion, options page, extension icons). Open: manual QA in Chrome/Firefox, public deployment (Stage 7).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
