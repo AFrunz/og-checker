@@ -99,15 +99,15 @@ details.network summary {
 }
 details.network summary::-webkit-details-marker { display: none; }
 summary .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-summary .right { display: flex; align-items: center; gap: 8px; flex: none; }
+summary .right { display: flex; align-items: center; gap: 15px; flex: none; }
 summary .name { font-weight: 500; font-size: 14px; line-height: 16px; }
 summary .s-ico { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; line-height: 0; flex: none; }
 summary .s-ico svg { display: block; width: 16px; height: 16px; }
 summary .s-ico.ok { color: var(--ok); }
 summary .s-ico.warning { color: var(--warn); }
-summary .s-ico.error { color: var(--err); }
+summary .s-ico.error { color: var(--err); margin-top: 0 }
 summary .count { font-size: 12px; color: var(--muted); }
-summary .count.warning, summary .count.error { color: var(--warn); }
+summary .count.warning, summary .count.error { color: var(--warn); margin-top: 0;}
 summary .chev { width: 8px; height: 8px; border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: rotate(45deg); transition: transform 0.15s; margin: -3px 2px 0 0; }
 details[open] summary .chev { transform: rotate(-135deg); margin-top: 2px; }
 
