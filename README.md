@@ -26,10 +26,19 @@ npm test             # node:test через tsx (юнит + интеграцио
 ### Сервер
 
 ```bash
-docker compose up --build            # Express на :3000 + Redis
+docker compose up --build            # Express на :3000 + Redis  (npm run compose:up)
 # или локально (нужен запущенный Redis):
 npm run dev --workspace server       # tsx watch
 ```
+
+**Podman** (вместо Docker) — та же конфигурация, менять ничего не нужно:
+
+```bash
+podman compose up --build            # npm run podman:up
+# при отсутствии провайдера compose:  podman-compose up --build
+```
+
+Работает в rootless-режиме: сервисы общаются по имени (`redis://redis:6379`), порт `3000` пробрасывается на хост, образ запускается от непривилегированного пользователя (`USER node`). Остановить — `npm run podman:down` (или `podman:down` / `compose:down`).
 
 Переменные окружения — см. [server/src/config.ts](server/src/config.ts) (`PORT`, `REDIS_URL`, `PUBLIC_BASE_URL`, лимиты, TTL).
 

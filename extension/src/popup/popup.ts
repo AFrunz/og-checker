@@ -7,6 +7,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getEl
 
 let activeTabId: number | null = null;
 let currentHost: string | null = null;
+let currentUrl: string | null = null;
 let timerInterval: ReturnType<typeof setInterval> | undefined;
 let currentSession: ServerSession | null = null;
 
@@ -31,6 +32,29 @@ function pluralRu(n: number, one: string, few: string, many: string): string {
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
   return many;
+}
+
+function formatPage(url: string): string {
+  try {
+    const u = new URL(url);
+    let s = u.host + u.pathname;
+    if (s.length > 1 && s.endsWith('/')) s = s.slice(0, -1);
+    return s.length > 44 ? s.slice(0, 43) + '…' : s;
+  } catch {
+    return url;
+  }
+}
+
+function samePage(a: string, b: string): boolean {
+  try {
+    const x = new URL(a);
+    const y = new URL(b);
+    x.hash = '';
+    y.hash = '';
+    return x.href === y.href;
+  } catch {
+    return a === b;
+  }
 }
 
 function fmtRemaining(ms: number): string {
@@ -229,6 +253,7 @@ function renderSession(session: ServerSession | null, remainingMs?: number): voi
   const copy = $<HTMLButtonElement>('copyBtn');
 
   if (!session) {
+    ($('srcRow') as HTMLElement).hidden = true;
     link.removeAttribute('href');
     link.textContent = 'Сессия не создана';
     link.classList.add('inactive');
@@ -238,6 +263,12 @@ function renderSession(session: ServerSession | null, remainingMs?: number): voi
     copy.disabled = true;
     return;
   }
+
+  ($('srcRow') as HTMLElement).hidden = false;
+  const pageEl = $('sessionPage');
+  pageEl.textContent = formatPage(session.pageUrl);
+  pageEl.title = session.pageUrl;
+  ($('pageNote') as HTMLElement).hidden = currentUrl ? samePage(session.pageUrl, currentUrl) : true;
 
   link.classList.remove('inactive');
   extend.disabled = false;
@@ -328,6 +359,7 @@ async function init(): Promise<void> {
   activeTabId = tab?.id ?? null;
 
   currentHost = null;
+  currentUrl = tab?.url ?? null;
   if (tab?.url) {
     try {
       const url = new URL(tab.url);
