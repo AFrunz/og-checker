@@ -198,21 +198,26 @@ test('несуществующая сессия -> 404', async (t) => {
   assert.equal((await fetch(`${base}/s/nope`)).status, 404);
 });
 
-test('невидимость для поисковиков: X-Robots-Tag noindex и robots.txt', async (t) => {
+test('поисковики скрыты, но соц-краулеры видят превью', async (t) => {
   const { server, base } = await startServer();
   t.after(() => server.close());
 
   const session = (await (await createSession(base)).json()) as SessionResponse;
 
+  // Обычный запрос (не соц-краулер) — noindex стоит
   const page = await fetch(session.publicUrl);
   assert.match(page.headers.get('x-robots-tag') ?? '', /noindex/);
   await page.text();
 
-  const img = await fetch(`${base}/s/${session.id}/img/0`);
-  assert.match(img.headers.get('x-robots-tag') ?? '', /noindex/);
-  await img.arrayBuffer();
+  // Соц-краулер (Telegram) на /s/* — noindex НЕ ставим, иначе не будет превью
+  const preview = await fetch(session.publicUrl, {
+    headers: { 'user-agent': 'TelegramBot (like TwitterBot)' }
+  });
+  assert.equal(preview.headers.get('x-robots-tag'), null);
+  await preview.text();
 
-  const robots = await fetch(`${base}/robots.txt`);
-  assert.equal(robots.status, 200);
-  assert.match(await robots.text(), /Disallow:\s*\//);
+  // robots.txt: /s/ разрешён, остальное закрыто
+  const robotsBody = await (await fetch(`${base}/robots.txt`)).text();
+  assert.match(robotsBody, /Allow:\s*\/s\//);
+  assert.match(robotsBody, /Disallow:\s*\//);
 });

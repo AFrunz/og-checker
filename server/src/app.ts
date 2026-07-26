@@ -15,6 +15,11 @@ import { nullStats, type Stats } from './stats';
 
 const MINUTE = 60_000;
 
+// Соц-краулеры, которым нужно строить превью по /s/*: им НЕ шлём noindex,
+// чтобы Telegram/FB/etc. не отказались показывать карточку.
+const SOCIAL_CRAWLER =
+  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|vkShare|Slackbot|Discordbot|redditbot|Pinterest|SkypeUriPreview/i;
+
 interface UploadImage {
   url: string;
   contentType: string;
@@ -36,10 +41,13 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // за reverse proxy на этапе деплоя
   app.use(helmet({ contentSecurityPolicy: false })); // CSP свой на /s/*
-  // Ничего на этом сервере не должно попадать в поисковики: ни API, ни
-  // эфемерные снятые страницы, ни их картинки. X-Robots-Tag на все ответы.
-  app.use((_req: Request, res: Response, next: NextFunction) => {
-    res.set('X-Robots-Tag', 'noindex, nofollow, noarchive, noimageindex');
+  // Прячем от поисковиков (X-Robots-Tag: noindex), НО не мешаем соц-краулерам
+  // строить превью для /s/* — им заголовок не шлём.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const isPreview = req.path.startsWith('/s/') && SOCIAL_CRAWLER.test(req.get('user-agent') ?? '');
+    if (!isPreview) {
+      res.set('X-Robots-Tag', 'noindex, nofollow, noarchive, noimageindex');
+    }
     next();
   });
   app.use(cookieParser());
@@ -218,10 +226,11 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
     res.set('Cache-Control', 'no-store').type(img.contentType).send(img.body);
   });
 
-  // Запрещаем обход всего домена. Соц-краулеры (FB/LinkedIn/Telegram) при фетче
-  // расшаренной ссылки robots.txt игнорируют, а обычные поисковики — уважают.
+  // Разрешаем обход только публичных страниц-превью /s/* (Telegram и др.
+  // проверяют robots.txt), остальное закрыто. Индексацию /s/* всё равно
+  // гасит X-Robots-Tag: noindex для не-соц-краулеров.
   app.get('/robots.txt', (_req: Request, res: Response) => {
-    res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+    res.type('text/plain').send('User-agent: *\nAllow: /s/\nDisallow: /\n');
   });
 
   // Статистика: количество созданных сессий за день/неделю/месяц (+ всего).
