@@ -9,6 +9,12 @@ An OpenGraph markup checker for local/staging environments (TypeScript):
 
 Detailed spec (RU) — [TZ.md](TZ.md).
 
+## Screenshots
+
+| Local check | Server tab |
+|:---:|:---:|
+| <img src="docs/images/popup-check.png" width="320" alt="Popup — Check tab" /> | <img src="docs/images/popup-server.png" width="320" alt="Popup — Server tab" /> |
+
 ## Structure
 
 ```
@@ -110,7 +116,7 @@ Without `ADMIN_TOKEN` the endpoint is disabled (404), but stats are still record
 
 ## Status
 
-MVP: stages 0–6 from TZ.md implemented in TypeScript. The UI is themed (Soft dark — popup with Check/Server tabs and a per‑network accordion, options page, extension icons). Open: manual QA in Chrome/Firefox, public deployment (Stage 7).
+TZ.md stages 0–7 implemented in TypeScript. The UI is themed (Soft dark — popup with **Check / Server** tabs and a per‑network accordion, options page, extension icons). The server runs in production behind Caddy with automatic HTTPS on a single domain (Docker / Podman), with file‑based usage stats and search‑engine hiding (`noindex` + `robots.txt`). Optional / next: subdomain isolation of served pages (Stage 7), wider manual QA in Chrome/Firefox.
 
 ## License
 
