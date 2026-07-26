@@ -11,6 +11,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { hashToken, newOwnerToken, SessionStore, type RedisLike, type SessionMeta } from './store';
 import { rewriteImageUrls } from './rewrite';
+import { nullStats, type Stats } from './stats';
 
 const MINUTE = 60_000;
 
@@ -28,7 +29,7 @@ interface CreateBody {
   ttlMinutes?: unknown;
 }
 
-export function createApp(redis: RedisLike): express.Express {
+export function createApp(redis: RedisLike, stats: Stats = nullStats): express.Express {
   const store = new SessionStore(redis);
   const app = express();
 
@@ -138,6 +139,7 @@ export function createApp(redis: RedisLike): express.Express {
     const urlMap = new Map(imgs.map((img, i) => [img.url, `${base}/s/${id}/img/${i}`]));
     await store.setHtml(id, rewriteImageUrls(html, urlMap));
     await store.touch(id, ttlMs); // hSet не сбрасывает TTL, но фиксируем явно
+    stats.record(); // одна созданная сессия = один «запрос»
 
     res.cookie(ownerCookieName(id), ownerToken, {
       httpOnly: true,
@@ -220,6 +222,21 @@ export function createApp(redis: RedisLike): express.Express {
   // расшаренной ссылки robots.txt игнорируют, а обычные поисковики — уважают.
   app.get('/robots.txt', (_req: Request, res: Response) => {
     res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+  });
+
+  // Статистика: количество созданных сессий за день/неделю/месяц (+ всего).
+  // Доступ по токену ADMIN_TOKEN; без токена эндпоинт выключен (404).
+  app.get('/admin/stats', (req: Request, res: Response) => {
+    if (!config.adminToken) {
+      res.status(404).end();
+      return;
+    }
+    const token = req.get('X-Admin-Token') ?? (typeof req.query.token === 'string' ? req.query.token : '');
+    if (token !== config.adminToken) {
+      res.status(403).json({ error: 'forbidden' });
+      return;
+    }
+    res.json({ sessions: stats.summary() });
   });
 
   app.get('/healthz', (_req: Request, res: Response) => {

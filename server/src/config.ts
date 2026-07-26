@@ -11,5 +11,9 @@ export const config = {
   maxImages: Number(process.env.MAX_IMAGES) || 10,
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || '40mb',
   createRatePerMinute: Number(process.env.CREATE_RATE_PER_MINUTE) || 10,
-  apiRatePerMinute: Number(process.env.API_RATE_PER_MINUTE) || 120
+  apiRatePerMinute: Number(process.env.API_RATE_PER_MINUTE) || 120,
+  // Статистика: путь к JSON-файлу счётчиков (пусто — статистика выключена)
+  statsFile: process.env.STATS_FILE || '',
+  // Токен для GET /admin/stats (пусто — эндпоинт выключен)
+  adminToken: process.env.ADMIN_TOKEN || ''
 };

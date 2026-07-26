@@ -96,6 +96,18 @@ In the extension options, set the server URL to `https://$DOMAIN`. Stop with `np
 
 For stronger isolation you can later split the API and the served pages onto two subdomains (`api.` / `s.`) — set `PUBLIC_BASE_URL` to the `s.` host and point the extension to the `api.` host (see Stage 7 in TZ.md). No code changes needed — the extension authenticates via the `X-Owner-Token` header.
 
+### Usage stats (no database)
+
+A minimal per‑day counter of created sessions is written to a JSON file (`STATS_FILE=/data/stats.json`, on the `server_data` volume) — no database. View day/week/month/total via a token‑gated endpoint:
+
+```bash
+# set ADMIN_TOKEN in .env first, then:
+curl "https://$DOMAIN/admin/stats?token=$ADMIN_TOKEN"
+# → {"sessions":{"day":3,"week":12,"month":40,"total":57}}
+```
+
+Without `ADMIN_TOKEN` the endpoint is disabled (404), but stats are still recorded. day/week/month are rolling windows (last 1/7/30 UTC days). You can also just read the file: `docker compose -f docker-compose.prod.yml exec server cat /data/stats.json`.
+
 ## Status
 
 MVP: stages 0–6 from TZ.md implemented in TypeScript. The UI is themed (Soft dark — popup with Check/Server tabs and a per‑network accordion, options page, extension icons). Open: manual QA in Chrome/Firefox, public deployment (Stage 7).

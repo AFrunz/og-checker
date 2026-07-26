@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import { config } from './config';
 import { createApp } from './app';
+import { FileStats, nullStats } from './stats';
 import type { RedisLike } from './store';
 
 async function main(): Promise<void> {
@@ -8,7 +9,10 @@ async function main(): Promise<void> {
   redis.on('error', (err: Error) => console.error('[redis]', err.message));
   await redis.connect();
 
-  const app = createApp(redis as unknown as RedisLike);
+  const stats = config.statsFile ? new FileStats(config.statsFile) : nullStats;
+  await stats.ready();
+
+  const app = createApp(redis as unknown as RedisLike, stats);
   app.listen(config.port, () => {
     console.log(`OG Checker server: http://localhost:${config.port}`);
   });
