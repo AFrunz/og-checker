@@ -197,3 +197,22 @@ test('несуществующая сессия -> 404', async (t) => {
   assert.equal((await fetch(`${base}/api/sessions/nope`)).status, 404);
   assert.equal((await fetch(`${base}/s/nope`)).status, 404);
 });
+
+test('невидимость для поисковиков: X-Robots-Tag noindex и robots.txt', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+
+  const session = (await (await createSession(base)).json()) as SessionResponse;
+
+  const page = await fetch(session.publicUrl);
+  assert.match(page.headers.get('x-robots-tag') ?? '', /noindex/);
+  await page.text();
+
+  const img = await fetch(`${base}/s/${session.id}/img/0`);
+  assert.match(img.headers.get('x-robots-tag') ?? '', /noindex/);
+  await img.arrayBuffer();
+
+  const robots = await fetch(`${base}/robots.txt`);
+  assert.equal(robots.status, 200);
+  assert.match(await robots.text(), /Disallow:\s*\//);
+});

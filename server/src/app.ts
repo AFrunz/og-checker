@@ -35,6 +35,12 @@ export function createApp(redis: RedisLike): express.Express {
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // за reverse proxy на этапе деплоя
   app.use(helmet({ contentSecurityPolicy: false })); // CSP свой на /s/*
+  // Ничего на этом сервере не должно попадать в поисковики: ни API, ни
+  // эфемерные снятые страницы, ни их картинки. X-Robots-Tag на все ответы.
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.set('X-Robots-Tag', 'noindex, nofollow, noarchive, noimageindex');
+    next();
+  });
   app.use(cookieParser());
   app.use(express.json({ limit: config.jsonBodyLimit }));
 
@@ -196,7 +202,6 @@ export function createApp(redis: RedisLike): express.Express {
     }
     res
       .set('Content-Security-Policy', STATIC_CSP)
-      .set('X-Robots-Tag', 'noindex')
       .set('Cache-Control', 'no-store')
       .type('text/html; charset=utf-8')
       .send(html);
@@ -209,6 +214,12 @@ export function createApp(redis: RedisLike): express.Express {
       return;
     }
     res.set('Cache-Control', 'no-store').type(img.contentType).send(img.body);
+  });
+
+  // Запрещаем обход всего домена. Соц-краулеры (FB/LinkedIn/Telegram) при фетче
+  // расшаренной ссылки robots.txt игнорируют, а обычные поисковики — уважают.
+  app.get('/robots.txt', (_req: Request, res: Response) => {
+    res.type('text/plain').send('User-agent: *\nDisallow: /\n');
   });
 
   app.get('/healthz', (_req: Request, res: Response) => {
