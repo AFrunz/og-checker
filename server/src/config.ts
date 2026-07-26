@@ -6,7 +6,7 @@ export const config = {
   defaultTtlMinutes: Number(process.env.DEFAULT_TTL_MINUTES) || 15,
   maxTtlMinutes: Number(process.env.MAX_TTL_MINUTES) || 120,
   // Лимиты
-  maxHtmlBytes: Number(process.env.MAX_HTML_BYTES) || 2 * 1024 * 1024, // 2 МБ
+  maxHtmlBytes: Number(process.env.MAX_HTML_BYTES) || 10 * 1024 * 1024, // 10 МБ (env: MAX_HTML_BYTES)
   maxImageBytes: Number(process.env.MAX_IMAGE_BYTES) || 5 * 1024 * 1024, // 5 МБ на картинку
   maxImages: Number(process.env.MAX_IMAGES) || 10,
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || '40mb',
