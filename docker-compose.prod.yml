@@ -1,0 +1,43 @@
+# Production deployment: Caddy (auto-HTTPS) → Express server + Redis, single domain.
+#
+# Prerequisites on the VM:
+#   1. DNS A record: $DOMAIN → this VM's public IP.
+#   2. Ports 80 and 443 open to the internet (firewall / security group).
+#   3. A .env file next to this compose (copy from .env.example) with DOMAIN set.
+#
+# Run:  docker compose -f docker-compose.prod.yml up -d --build     (npm run deploy:up)
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # persists issued certificates — do not lose this
+      - caddy_config:/config
+    depends_on:
+      - server
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+      PUBLIC_BASE_URL: https://${DOMAIN:?set DOMAIN in .env}
+    depends_on:
+      - redis
+    # No host port: reachable only through Caddy on the internal network.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Ephemeral sessions (TTL 15 min) — persistence not needed.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -76,6 +76,26 @@ API: `POST /api/sessions`, `GET /api/sessions/:id`, `POST /api/sessions/:id/exte
 
 Безопасность: снятая страница отдаётся с жёстким CSP (скрипты не исполняются), rate limiting и лимиты на размер — в конфиге. На публичном деплое статику стоит вынести на отдельный поддомен через reverse proxy (см. Этап 7 в TZ.md).
 
+## Деплой (один домен, Caddy c авто-HTTPS)
+
+На ВМ нужно: Docker (или Podman), домен с **A-записью → публичный IP ВМ**, открытые порты **80/443**.
+
+1. Скопировать env и указать домен:
+   ```bash
+   cp .env.example .env   # затем DOMAIN=yourdomain.tld
+   ```
+2. Поднять стек (Caddy + сервер + Redis):
+   ```bash
+   npm run deploy:up      # docker compose -f docker-compose.prod.yml up -d --build
+   # Podman:  DOMAIN=yourdomain.tld podman compose -f docker-compose.prod.yml up -d --build
+   ```
+
+[Caddy](Caddyfile) сам выпустит сертификат Let's Encrypt для `$DOMAIN` (сертификаты хранятся в volume `caddy_data`). Сервер не публикует порт на хост — доступен только через Caddy, а `PUBLIC_BASE_URL=https://$DOMAIN`, поэтому ссылки `/s/{id}` и картинки идут на него. Всё на одном origin: API — `/api/*`, публичные страницы — `/s/*`.
+
+В настройках расширения укажи адрес сервера `https://$DOMAIN`. Остановить — `npm run deploy:down`.
+
+Для более строгой изоляции позже можно разнести API и раздачу страниц на два поддомена (`api.` / `s.`): задать `PUBLIC_BASE_URL` на `s.`-хост, а расширение направить на `api.`-хост (Этап 7 в TZ.md). Правок кода не нужно — расширение авторизуется заголовком `X-Owner-Token`.
+
 ## Статус
 
 MVP: этапы 0–6 из TZ.md реализованы на TypeScript. UI оформлен (тема Soft dark — popup с вкладками «Проверка»/«Сервер» и аккордеоном по соцсетям, страница настроек, иконки расширения). Не закрыто: ручная проверка в Chrome/Firefox, публичный деплой (Этап 7).

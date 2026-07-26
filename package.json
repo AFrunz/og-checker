@@ -15,7 +15,9 @@
     "compose:up": "docker compose up --build",
     "compose:down": "docker compose down",
     "podman:up": "podman compose up --build",
-    "podman:down": "podman compose down"
+    "podman:down": "podman compose down",
+    "deploy:up": "docker compose -f docker-compose.prod.yml up -d --build",
+    "deploy:down": "docker compose -f docker-compose.prod.yml down"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

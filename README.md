@@ -76,6 +76,26 @@ API: `POST /api/sessions`, `GET /api/sessions/:id`, `POST /api/sessions/:id/exte
 
 Security: the captured page is served with a strict CSP (scripts don’t execute), plus rate limiting and size limits (in config). For public deployment, serve the static content from a separate subdomain via a reverse proxy (see Stage 7 in TZ.md).
 
+## Deployment (single domain, Caddy auto‑HTTPS)
+
+Prerequisites on the VM: Docker (or Podman), a domain with an **A record → the VM's public IP**, and ports **80/443** open to the internet.
+
+1. Copy env and set your domain:
+   ```bash
+   cp .env.example .env   # then edit DOMAIN=yourdomain.tld
+   ```
+2. Bring it up (Caddy + server + Redis):
+   ```bash
+   npm run deploy:up      # docker compose -f docker-compose.prod.yml up -d --build
+   # Podman:  DOMAIN=yourdomain.tld podman compose -f docker-compose.prod.yml up -d --build
+   ```
+
+[Caddy](Caddyfile) obtains a Let's Encrypt certificate for `$DOMAIN` automatically; issued certs persist in the `caddy_data` volume. The server has no host port — it's reachable only through Caddy — and `PUBLIC_BASE_URL` is set to `https://$DOMAIN`, so `/s/{id}` links and rewritten image URLs use it. Everything on one origin: API at `/api/*`, public pages at `/s/*`.
+
+In the extension options, set the server URL to `https://$DOMAIN`. Stop with `npm run deploy:down`.
+
+For stronger isolation you can later split the API and the served pages onto two subdomains (`api.` / `s.`) — set `PUBLIC_BASE_URL` to the `s.` host and point the extension to the `api.` host (see Stage 7 in TZ.md). No code changes needed — the extension authenticates via the `X-Owner-Token` header.
+
 ## Status
 
 MVP: stages 0–6 from TZ.md implemented in TypeScript. The UI is themed (Soft dark — popup with Check/Server tabs and a per‑network accordion, options page, extension icons). Open: manual QA in Chrome/Firefox, public deployment (Stage 7).

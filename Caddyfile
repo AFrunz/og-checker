@@ -1,0 +1,8 @@
+# OG Checker — reverse proxy with automatic HTTPS (Let's Encrypt).
+# DOMAIN is injected from the environment (see .env / docker-compose.prod.yml).
+# To get expiry emails, add a global block:  { email you@example.com }
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:3000
+}
