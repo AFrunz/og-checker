@@ -17,8 +17,29 @@ const MINUTE = 60_000;
 
 // Соц-краулеры, которым нужно строить превью по /s/*: им НЕ шлём noindex,
 // чтобы Telegram/FB/etc. не отказались показывать карточку.
-const SOCIAL_CRAWLER =
-  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|vkShare|Slackbot|Discordbot|redditbot|Pinterest|SkypeUriPreview/i;
+const SOCIAL_BOTS = [
+  'facebookexternalhit',
+  'Facebot',
+  'Twitterbot',
+  'LinkedInBot',
+  'WhatsApp',
+  'TelegramBot',
+  'vkShare',
+  'Slackbot',
+  'Discordbot',
+  'redditbot',
+  'Pinterest',
+  'SkypeUriPreview'
+];
+const SOCIAL_CRAWLER = new RegExp(SOCIAL_BOTS.join('|'), 'i');
+
+// robots.txt: соц-ботам — отдельные группы с пустым Disallow («всё можно»),
+// это понимает даже самый примитивный парсер (Allow-директиву Telegram,
+// например, не знает и при «Allow: /s/ + Disallow: /» не строит превью).
+// Для остальных (поисковиков) — полный запрет; /s/* дополнительно гасится
+// заголовком X-Robots-Tag: noindex.
+const ROBOTS_TXT =
+  SOCIAL_BOTS.map((bot) => `User-agent: ${bot}\nDisallow:\n`).join('\n') + '\nUser-agent: *\nDisallow: /\n';
 
 interface UploadImage {
   url: string;
@@ -226,11 +247,8 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
     res.set('Cache-Control', 'no-store').type(img.contentType).send(img.body);
   });
 
-  // Разрешаем обход только публичных страниц-превью /s/* (Telegram и др.
-  // проверяют robots.txt), остальное закрыто. Индексацию /s/* всё равно
-  // гасит X-Robots-Tag: noindex для не-соц-краулеров.
   app.get('/robots.txt', (_req: Request, res: Response) => {
-    res.type('text/plain').send('User-agent: *\nAllow: /s/\nDisallow: /\n');
+    res.type('text/plain').send(ROBOTS_TXT);
   });
 
   // Статистика: количество созданных сессий за день/неделю/месяц (+ всего).

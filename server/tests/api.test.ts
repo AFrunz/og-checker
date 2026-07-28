@@ -216,8 +216,12 @@ test('поисковики скрыты, но соц-краулеры видят
   assert.equal(preview.headers.get('x-robots-tag'), null);
   await preview.text();
 
-  // robots.txt: /s/ разрешён, остальное закрыто
+  // robots.txt: у соц-ботов своя группа с пустым Disallow (даже примитивный
+  // парсер без поддержки Allow-директивы поймёт «всё можно»), для остальных —
+  // полный запрет
   const robotsBody = await (await fetch(`${base}/robots.txt`)).text();
-  assert.match(robotsBody, /Allow:\s*\/s\//);
-  assert.match(robotsBody, /Disallow:\s*\//);
+  assert.match(robotsBody, /User-agent: TelegramBot\nDisallow:\n/);
+  assert.match(robotsBody, /User-agent: Twitterbot\nDisallow:\n/);
+  assert.match(robotsBody, /User-agent: \*\nDisallow: \/\n/);
+  assert.ok(!robotsBody.includes('Allow:'), 'Allow-директив быть не должно');
 });
