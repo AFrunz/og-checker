@@ -61,6 +61,20 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
 
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // за reverse proxy на этапе деплоя
+
+  // Access-лог в stdout (docker logs): кто пришёл, что запросил, каким UA.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      const ua = req.get('user-agent') ?? '-';
+      console.log(
+        `[access] ${new Date().toISOString()} ${req.ip} ${req.method} ${req.originalUrl} ` +
+          `${res.statusCode} ${res.get('content-length') ?? '-'}b ${Date.now() - startedAt}ms "${ua}"`
+      );
+    });
+    next();
+  });
+
   app.use(helmet({ contentSecurityPolicy: false })); // CSP свой на /s/*
   // Прячем от поисковиков (X-Robots-Tag: noindex), НО не мешаем соц-краулерам
   // строить превью для /s/* — им заголовок не шлём.
