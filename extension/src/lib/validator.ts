@@ -38,9 +38,37 @@ function resolveTag(
   return { value: null, via: null };
 }
 
-function checkTag(tags: MetaTag[], key: string, severity: Level, fallbacks?: Record<string, string>): Check {
+function checkTag(
+  tags: MetaTag[],
+  key: string,
+  severity: Level,
+  fallbacks?: Record<string, string>,
+  staticTags?: MetaTag[] | null
+): Check {
   const { value, via } = resolveTag(tags, key, fallbacks);
   if (value !== null) {
+    // Тег есть в живом DOM — сверяем со статическим HTML: соц-краулеры JS
+    // не исполняют, поэтому тег, которого нет в статике, они не увидят.
+    if (staticTags) {
+      const usedKey = via ?? key;
+      const staticValue = firstValue(staticTags, usedKey);
+      if (staticValue === null) {
+        return {
+          tag: key,
+          status: 'warning',
+          value,
+          message: `${usedKey} появляется только после JS — краулеры его не увидят`
+        };
+      }
+      if (staticValue !== value) {
+        return {
+          tag: key,
+          status: 'warning',
+          value,
+          message: `JS меняет значение (краулер увидит: «${staticValue}»)`
+        };
+      }
+    }
     return { tag: key, status: 'ok', value, message: via ? `используется ${via}` : 'ок' };
   }
   const present = hasTag(tags, key);
@@ -108,14 +136,22 @@ function checkImage(
   };
 }
 
-/** Проверка одного профиля. */
-export function validateProfile(profile: Profile, tags: MetaTag[], imageInfo: ImageInfoMap): NetworkReport {
+/**
+ * Проверка одного профиля.
+ * @param staticTags теги из исходного HTML (без JS); null/undefined — сверка недоступна
+ */
+export function validateProfile(
+  profile: Profile,
+  tags: MetaTag[],
+  imageInfo: ImageInfoMap,
+  staticTags?: MetaTag[] | null
+): NetworkReport {
   const checks: Check[] = [];
   for (const key of profile.required) {
-    checks.push(checkTag(tags, key, 'error', profile.fallbacks));
+    checks.push(checkTag(tags, key, 'error', profile.fallbacks, staticTags));
   }
   for (const key of profile.recommended) {
-    checks.push(checkTag(tags, key, 'warning', profile.fallbacks));
+    checks.push(checkTag(tags, key, 'warning', profile.fallbacks, staticTags));
   }
   if (profile.image) {
     const imgCheck = checkImage(profile.image, tags, imageInfo, profile.fallbacks);
@@ -126,8 +162,13 @@ export function validateProfile(profile: Profile, tags: MetaTag[], imageInfo: Im
 }
 
 /** Полная проверка по выбранным профилям. */
-export function validate(profiles: Profile[], tags: MetaTag[], imageInfo: ImageInfoMap): Report {
-  const networks = profiles.map((p) => validateProfile(p, tags, imageInfo));
+export function validate(
+  profiles: Profile[],
+  tags: MetaTag[],
+  imageInfo: ImageInfoMap,
+  staticTags?: MetaTag[] | null
+): Report {
+  const networks = profiles.map((p) => validateProfile(p, tags, imageInfo, staticTags));
   const level = networks.reduce<Level>((acc, n) => worst(acc, n.level), 'ok');
   return { level, networks, tagCount: tags.length };
 }

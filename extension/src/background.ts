@@ -10,7 +10,16 @@ import { shouldCheckUrl } from './lib/scope';
 import { collectImageUrls, validate } from './lib/validator';
 import { loadSettings } from './lib/settings';
 import { isPrivateUrl, resolveUrl } from './lib/urlutils';
-import type { ImageInfo, ImageInfoMap, MetaTag, PageSnapshot, ServerSession, TabResult, UploadImage } from './lib/types';
+import type {
+  ImageInfo,
+  ImageInfoMap,
+  MetaTag,
+  PageSnapshot,
+  ServerSession,
+  TabResult,
+  TagSource,
+  UploadImage
+} from './lib/types';
 
 // ---------------------------------------------------------------------------
 // Badge
@@ -98,7 +107,7 @@ async function probeImages(urls: string[], pageUrl: string): Promise<ImageInfoMa
 // Локальная проверка
 // ---------------------------------------------------------------------------
 
-async function runCheck(tabId: number, url: string, tags: MetaTag[]): Promise<void> {
+async function runCheck(tabId: number, url: string, tags: MetaTag[], staticTags: MetaTag[] | null): Promise<void> {
   const settings = await loadSettings();
 
   if (!settings.enabled) {
@@ -120,7 +129,7 @@ async function runCheck(tabId: number, url: string, tags: MetaTag[]): Promise<vo
   const profiles = PROFILES.filter((p) => settings.networks.includes(p.id));
   const imageUrls = collectImageUrls(profiles, tags);
   const imageInfo = await probeImages(imageUrls, url);
-  const report = validate(profiles, tags, imageInfo);
+  const report = validate(profiles, tags, imageInfo, staticTags);
 
   await setBadge(tabId, report.level);
   await saveResult(tabId, { status: 'done', url, tags, report, checkedAt: Date.now() });
@@ -232,10 +241,13 @@ async function createServerSession(tabId: number): Promise<ServerSession> {
   const serverUrl = settings.serverUrl.replace(/\/+$/, '');
   if (!serverUrl) throw new Error('Адрес сервера не задан в настройках');
 
-  const page = (await browser.tabs.sendMessage(tabId, { type: 'ogc:getHtml' })) as PageSnapshot | undefined;
-  if (!page?.html) throw new Error('Не удалось получить HTML страницы');
+  const page = (await browser.tabs.sendMessage(tabId, { type: 'ogc:getSnapshot' })) as PageSnapshot | undefined;
+  if (!page) throw new Error('Не удалось получить данные страницы');
 
-  const tags = page.tags ?? (await getResult(tabId))?.tags ?? [];
+  // Честная симуляция краулера: теги из статического HTML (без JS).
+  // Если исходник получить не удалось — фолбэк на DOM после JS с пометкой.
+  const source: TagSource = page.staticTags !== null ? 'static' : 'rendered';
+  const tags = page.staticTags ?? page.tags;
   const images = await collectImagesForUpload(tags, page.url, settings.imageMode);
 
   const resp = await fetch(serverUrl + '/api/sessions', {
@@ -243,7 +255,8 @@ async function createServerSession(tabId: number): Promise<ServerSession> {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      html: page.html,
+      tags,
+      source,
       pageUrl: page.url,
       title: page.title,
       images,
@@ -263,7 +276,8 @@ async function createServerSession(tabId: number): Promise<ServerSession> {
     ownerToken: session.ownerToken,
     serverUrl,
     pageUrl: page.url,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    source
   };
   await browser.storage.local.set({ serverSession: stored });
   return stored;
@@ -278,6 +292,7 @@ interface Message {
   tabId?: number;
   url?: string;
   tags?: MetaTag[];
+  staticTags?: MetaTag[] | null;
 }
 
 browser.runtime.onMessage.addListener((msg: unknown, sender: Runtime.MessageSender): Promise<unknown> | undefined => {
@@ -287,7 +302,7 @@ browser.runtime.onMessage.addListener((msg: unknown, sender: Runtime.MessageSend
   switch (m.type) {
     case 'ogc:tags': {
       const tabId = sender.tab?.id;
-      if (tabId != null && m.url && m.tags) void runCheck(tabId, m.url, m.tags);
+      if (tabId != null && m.url && m.tags) void runCheck(tabId, m.url, m.tags, m.staticTags ?? null);
       return undefined;
     }
     case 'ogc:getState':

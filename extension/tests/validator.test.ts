@@ -96,3 +96,41 @@ test('collectImageUrls собирает URL с учётом фолбэков', (
   const urls = collectImageUrls(PROFILES, [...FULL_TAGS, t('twitter:card', 'summary')]);
   assert.deepEqual(urls, ['https://cdn.example.com/pic.png']);
 });
+
+// --- сверка со статическим HTML (краулеры JS не исполняют) ---
+
+test('тег только в DOM (нет в статике) -> warning про JS', () => {
+  const staticTags = FULL_TAGS.filter((x) => x.key !== 'og:title'); // og:title добавлен JS-ом
+  const res = validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, staticTags);
+  const check = res.checks.find((c) => c.tag === 'og:title');
+  assert.ok(check);
+  assert.equal(check.status, 'warning');
+  assert.match(check.message, /только после JS/);
+  assert.equal(res.level, 'warning');
+});
+
+test('JS меняет значение тега -> warning со статическим значением', () => {
+  const staticTags = FULL_TAGS.map((x) => (x.key === 'og:title' ? t('og:title', 'Старый заголовок') : x));
+  const res = validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, staticTags);
+  const check = res.checks.find((c) => c.tag === 'og:title');
+  assert.ok(check);
+  assert.equal(check.status, 'warning');
+  assert.match(check.message, /Старый заголовок/);
+});
+
+test('фолбэк-тег сверяется по фактически использованному ключу', () => {
+  // twitter:title берётся из og:title; og:title есть только в DOM
+  const live = [...FULL_TAGS, t('twitter:card', 'summary_large_image')];
+  const staticTags = live.filter((x) => x.key !== 'og:title');
+  const res = validateProfile(profile('twitter'), live, IMG_OK, staticTags);
+  const check = res.checks.find((c) => c.tag === 'twitter:title');
+  assert.ok(check);
+  assert.equal(check.status, 'warning');
+  assert.match(check.message, /og:title/);
+});
+
+test('статика совпадает или недоступна (null) -> без warning', () => {
+  assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, FULL_TAGS).level, 'ok');
+  assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, null).level, 'ok');
+  assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK).level, 'ok');
+});

@@ -72,10 +72,10 @@ class FakeRedis implements RedisLike {
 const PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-const HTML = `<!DOCTYPE html><html><head>
-<meta property="og:title" content="Тест" />
-<meta property="og:image" content="http://localhost:5173/pic.png" />
-</head><body>ok</body></html>`;
+const TAGS = [
+  { key: 'og:title', value: 'Тест' },
+  { key: 'og:image', value: 'http://localhost:5173/pic.png' }
+];
 
 interface SessionResponse {
   id: string;
@@ -100,7 +100,8 @@ async function createSession(base: string, overrides: Record<string, unknown> = 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      html: HTML,
+      tags: TAGS,
+      source: 'static',
       pageUrl: 'http://localhost:5173/',
       title: 'Тест',
       images: [{ url: 'http://localhost:5173/pic.png', contentType: 'image/png', dataB64: PNG_B64 }],
@@ -120,12 +121,13 @@ test('создание сессии: ссылка, таймер, перепис�
   assert.ok(session.id && session.publicUrl && session.ownerToken);
   assert.ok(session.remainingMs > 14 * 60_000 && session.remainingMs <= 15 * 60_000);
 
-  // Публичная страница отдаётся, URL картинки переписан
+  // Публичная страница отдаётся: синтетический head с тегами, URL картинки переписан
   const page = await fetch(session.publicUrl);
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type') ?? '', /text\/html/);
   assert.ok(page.headers.get('content-security-policy'));
   const html = await page.text();
+  assert.ok(html.includes('<meta property="og:title" content="Тест">'));
   assert.ok(!html.includes('http://localhost:5173/pic.png'));
   assert.ok(html.includes(`/s/${session.id}/img/0`));
 
@@ -174,11 +176,16 @@ test('продление и остановка требуют токен вла�
   assert.equal((await fetch(session.publicUrl)).status, 404);
 });
 
-test('лимиты: пустой html и слишком много картинок отклоняются', async (t) => {
+test('лимиты: битые теги и слишком много картинок отклоняются', async (t) => {
   const { server, base } = await startServer();
   t.after(() => server.close());
 
-  assert.equal((await createSession(base, { html: '' })).status, 400);
+  assert.equal((await createSession(base, { tags: 'not-an-array' })).status, 400);
+  assert.equal((await createSession(base, { tags: [{ key: '', value: 'x' }] })).status, 400);
+  assert.equal((await createSession(base, { tags: [{ key: 'og:title', value: 'x'.repeat(3000) }] })).status, 400);
+
+  const manyTags = Array.from({ length: 300 }, (_, i) => ({ key: `og:x${i}`, value: 'v' }));
+  assert.equal((await createSession(base, { tags: manyTags })).status, 413);
 
   const many = Array.from({ length: 11 }, (_, i) => ({
     url: `http://localhost/p${i}.png`,

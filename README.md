@@ -76,7 +76,9 @@ Scope: **all sites except a blacklist** (default) / **only sites in a whitelist*
 
 ### Server check
 
-From a button in the popup, the extension captures the rendered HTML (after JS), optionally uploads images (all / only externally‑unreachable / none), and sends it to the server. The server stores everything in Redis with a 15‑minute TTL, rewrites image URLs to public ones, and returns a `/s/{id}` link. The popup shows the link and a countdown; the session can be extended or stopped — by the owner only (token/cookie).
+From a button in the popup, the extension captures the meta tags from the page's original HTML (fetched without executing JS — exactly what a crawler sees; falls back to the post‑JS DOM with a warning if the source can't be fetched), optionally uploads images (all / only externally‑unreachable / none), and sends them to the server. The server builds a synthetic preview page from the tags (no third‑party HTML is stored; values are escaped), keeps it in Redis with a 15‑minute TTL, rewrites image URLs to public ones, and returns a `/s/{id}` link. The popup shows the link and a countdown; the session can be extended or stopped — by the owner only (token/cookie).
+
+The local check also diffs the DOM against the static HTML: tags added or changed by JS are flagged with a warning — social crawlers won't see them.
 
 API: `POST /api/sessions`, `GET /api/sessions/:id`, `POST /api/sessions/:id/extend`, `DELETE /api/sessions/:id`; public: `GET /s/:id`, `GET /s/:id/img/:n`.
 

@@ -10,7 +10,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { hashToken, newOwnerToken, SessionStore, type RedisLike, type SessionMeta } from './store';
-import { rewriteImageUrls } from './rewrite';
+import { renderPreviewHtml, type PreviewTag } from './render';
 import { nullStats, type Stats } from './stats';
 
 const MINUTE = 60_000;
@@ -48,7 +48,8 @@ interface UploadImage {
 }
 
 interface CreateBody {
-  html?: unknown;
+  tags?: unknown;
+  source?: unknown;
   pageUrl?: unknown;
   title?: unknown;
   images?: unknown;
@@ -137,15 +138,28 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
   // -------------------------------------------------------------------------
 
   app.post('/api/sessions', createLimiter, async (req: Request, res: Response) => {
-    const { html, pageUrl, title, images = [], ttlMinutes } = (req.body ?? {}) as CreateBody;
+    const { tags, source, pageUrl, title, images = [], ttlMinutes } = (req.body ?? {}) as CreateBody;
 
-    if (typeof html !== 'string' || !html.trim()) {
-      res.status(400).json({ error: 'html is required' });
+    if (!Array.isArray(tags)) {
+      res.status(400).json({ error: 'tags array is required' });
       return;
     }
-    if (Buffer.byteLength(html, 'utf8') > config.maxHtmlBytes) {
-      res.status(413).json({ error: `html exceeds ${config.maxHtmlBytes} bytes` });
+    if (tags.length > config.maxTags) {
+      res.status(413).json({ error: `too many tags (max ${config.maxTags})` });
       return;
+    }
+    for (const t of tags as PreviewTag[]) {
+      if (
+        !t ||
+        typeof t.key !== 'string' ||
+        typeof t.value !== 'string' ||
+        !t.key.trim() ||
+        t.key.length > 200 ||
+        t.value.length > config.maxTagValueLength
+      ) {
+        res.status(400).json({ error: 'invalid tag entry' });
+        return;
+      }
     }
     if (!Array.isArray(images) || images.length > config.maxImages) {
       res.status(413).json({ error: `too many images (max ${config.maxImages})` });
@@ -162,6 +176,7 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
       }
     }
     const imgs = images as UploadImage[];
+    const tagList = tags as PreviewTag[];
 
     const ttlMin = Math.min(Math.max(Number(ttlMinutes) || config.defaultTtlMinutes, 1), config.maxTtlMinutes);
     const ttlMs = ttlMin * MINUTE;
@@ -176,11 +191,18 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
     };
 
     // Сначала создаём сессию, чтобы знать id для публичных URL картинок,
-    // затем переписываем HTML и кладём финальную версию.
+    // затем собираем синтетическую страницу из тегов (чужой HTML не храним).
     const id = await store.create({ html: '', meta, images: imgs, ttlMs });
     const base = publicBase(req);
     const urlMap = new Map(imgs.map((img, i) => [img.url, `${base}/s/${id}/img/${i}`]));
-    await store.setHtml(id, rewriteImageUrls(html, urlMap));
+    const finalTags = tagList.map((t) => (urlMap.has(t.value) ? { ...t, value: urlMap.get(t.value)! } : t));
+    const html = renderPreviewHtml({
+      title: meta.title,
+      pageUrl: meta.pageUrl,
+      tags: finalTags,
+      source: source === 'rendered' ? 'rendered' : 'static'
+    });
+    await store.setHtml(id, html);
     await store.touch(id, ttlMs); // hSet не сбрасывает TTL, но фиксируем явно
     stats.record(); // одна созданная сессия = один «запрос»
 

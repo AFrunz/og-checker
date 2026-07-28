@@ -87,6 +87,9 @@ export interface TabResult {
   checkedAt?: number;
 }
 
+/** Источник тегов для серверной сессии: статический HTML или DOM после JS. */
+export type TagSource = 'static' | 'rendered';
+
 export interface ServerSession {
   id: string;
   publicUrl: string;
@@ -95,6 +98,7 @@ export interface ServerSession {
   serverUrl: string;
   pageUrl: string;
   createdAt: number;
+  source: TagSource;
 }
 
 export interface UploadImage {
@@ -103,10 +107,14 @@ export interface UploadImage {
   dataB64: string;
 }
 
-/** Ответ content script на запрос HTML. */
+/**
+ * Ответ content script на запрос снимка страницы.
+ * tags — из живого DOM (после JS); staticTags — из исходного HTML
+ * (fetch + DOMParser, JS не исполняется), null — исходник получить не удалось.
+ */
 export interface PageSnapshot {
-  html: string;
   url: string;
   title: string;
   tags: MetaTag[];
+  staticTags: MetaTag[] | null;
 }

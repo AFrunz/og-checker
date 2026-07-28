@@ -254,6 +254,7 @@ function renderSession(session: ServerSession | null, remainingMs?: number): voi
 
   if (!session) {
     ($('srcRow') as HTMLElement).hidden = true;
+    ($('sourceNote') as HTMLElement).hidden = true;
     link.removeAttribute('href');
     link.textContent = 'Сессия не создана';
     link.classList.add('inactive');
@@ -265,6 +266,7 @@ function renderSession(session: ServerSession | null, remainingMs?: number): voi
   }
 
   ($('srcRow') as HTMLElement).hidden = false;
+  ($('sourceNote') as HTMLElement).hidden = session.source !== 'rendered';
   const pageEl = $('sessionPage');
   pageEl.textContent = formatPage(session.pageUrl);
   pageEl.title = session.pageUrl;
