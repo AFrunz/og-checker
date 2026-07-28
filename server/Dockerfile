@@ -12,6 +12,9 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist/index.cjs ./index.cjs
+# /data — том для статистики; создаём заранее с владельцем node, чтобы
+# пустой named volume унаследовал права и процесс мог туда писать
+RUN mkdir -p /data && chown node:node /data
 EXPOSE 3000
 USER node
 CMD ["node", "index.cjs"]

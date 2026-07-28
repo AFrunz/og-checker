@@ -75,7 +75,12 @@ export class FileStats implements Stats {
     if (this.flushTimer) return;
     this.flushTimer = setTimeout(() => {
       this.flushTimer = null;
-      void this.flush();
+      // Ошибка записи не должна ронять процесс (unhandled rejection):
+      // статистика вторична, логируем и живём дальше.
+      this.flush().catch((err: Error) => {
+        this.dirty = true; // не потеряли инкременты — попробуем при следующей записи
+        console.error('[stats] flush failed:', err.message);
+      });
     }, 2000);
     this.flushTimer.unref?.();
   }
