@@ -63,9 +63,11 @@ export type ImageInfoMap = Record<string, ImageInfo>;
 
 export type ScopeMode = 'single' | 'blacklist' | 'whitelist';
 export type ImageMode = 'all' | 'unavailable' | 'none';
+export type Lang = 'en' | 'ru';
 
 export interface Settings {
   enabled: boolean;
+  language: Lang;
   networks: string[];
   scopeMode: ScopeMode;
   singleDomain: string;

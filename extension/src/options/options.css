@@ -86,12 +86,12 @@ input[type="radio"] { margin-top: 1px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field-label { font-size: 13px; font-weight: 500; }
 
-input[type="text"], textarea {
+input[type="text"], textarea, select {
   font: inherit; color: var(--fg);
   background: var(--input-bg); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 10px 14px; width: 100%;
 }
-input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
 textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; resize: vertical; min-height: 64px; }
 input::placeholder, textarea::placeholder { color: var(--faint); }
 
@@ -109,3 +109,6 @@ input::placeholder, textarea::placeholder { color: var(--faint); }
 
 .foot { display: flex; align-items: center; gap: 14px; }
 .saved { color: var(--ok); font-size: 13px; font-weight: 500; }
+
+/* Атрибут hidden должен побеждать классы с явным display (.btn и т.п.) */
+[hidden] { display: none !important; }

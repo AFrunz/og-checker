@@ -74,6 +74,8 @@ The content script collects `og:*` / `twitter:*` / `fb:*` tags and passes them t
 
 Scope: **all sites except a blacklist** (default) / **only sites in a whitelist**. Pattern — `host[:port]`, `*` is a wildcard (`*.example.com`, `localhost:3000`). The popup also has a per‑site toggle (“enable/disable on this site”).
 
+UI language: English by default, Russian available — switchable on the options page (applies to the popup, options, report messages, and the server preview page).
+
 ### Server check
 
 From a button in the popup, the extension captures the meta tags from the page's original HTML (fetched without executing JS — exactly what a crawler sees; falls back to the post‑JS DOM with a warning if the source can't be fetched), optionally uploads images (all / only externally‑unreachable / none), and sends them to the server. The server builds a synthetic preview page from the tags (no third‑party HTML is stored; values are escaped), keeps it in Redis with a 15‑minute TTL, rewrites image URLs to public ones, and returns a `/s/{id}` link. The popup shows the link and a countdown; the session can be extended or stopped — by the owner only (token/cookie).

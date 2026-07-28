@@ -194,3 +194,6 @@ ul.checks li.warning .msg, ul.checks li.error .msg { color: var(--warn); }
 .foot-link .ico { width: 14px; height: 14px; }
 .foot-link:hover { color: var(--fg); }
 .ver { color: var(--muted); font-size: 11px; }
+
+/* Атрибут hidden должен побеждать классы с явным display (.btn и т.п.) */
+[hidden] { display: none !important; }

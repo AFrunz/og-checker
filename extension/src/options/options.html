@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>OG Checker — настройки</title>
+  <title data-i18n="opt.docTitle">OG Checker — Settings</title>
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
   <div class="page">
     <div class="head">
-      <h1>Настройки OG Checker</h1>
-      <p class="sub">Проверка OpenGraph-разметки в тестовом и локальном окружении</p>
+      <h1 data-i18n="opt.h1">OG Checker Settings</h1>
+      <p class="sub" data-i18n="opt.sub">OpenGraph markup checks for test and local environments</p>
     </div>
 
     <label class="tile toggle-tile">
       <span class="tile-text">
-        <span class="tile-title">Расширение включено</span>
-        <span class="tile-desc">Глобально включает и выключает все проверки</span>
+        <span class="tile-title" data-i18n="opt.enabled.title">Extension enabled</span>
+        <span class="tile-desc" data-i18n="opt.enabled.desc">Globally turns all checks on and off</span>
       </span>
       <span class="switch">
         <input type="checkbox" id="enabled" />
@@ -25,8 +25,23 @@
 
     <section class="sec">
       <div class="sec-head">
-        <h2>Соцсети для проверки</h2>
-        <p class="sec-desc">Наборы обязательных и рекомендуемых тегов для каждой сети</p>
+        <h2 data-i18n="opt.lang.h">Language</h2>
+        <p class="sec-desc" data-i18n="opt.lang.desc">Interface and report language</p>
+      </div>
+      <div class="card">
+        <label class="field">
+          <select id="language">
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2 data-i18n="opt.networks.h">Social networks to check</h2>
+        <p class="sec-desc" data-i18n="opt.networks.desc">Required and recommended tag sets for each network</p>
       </div>
       <div class="card">
         <div id="networks" class="networks"></div>
@@ -35,71 +50,71 @@
 
     <section class="sec">
       <div class="sec-head">
-        <h2>Область проверки</h2>
-        <p class="sec-desc">Оба списка хранятся отдельно и не сбрасываются при переключении режима</p>
+        <h2 data-i18n="opt.scope.h">Check scope</h2>
+        <p class="sec-desc" data-i18n="opt.scope.desc">Both lists are stored separately and survive mode switching</p>
       </div>
       <div class="card">
         <label class="opt">
           <input type="radio" name="scopeMode" value="blacklist" />
           <span class="opt-text">
-            <span class="opt-title">Все сайты, кроме списка&nbsp; ·&nbsp; по умолчанию</span>
-            <span class="opt-desc">Чёрный список. Проверяем везде, кроме указанных доменов.</span>
+            <span class="opt-title" data-i18n="opt.blacklist.title">All sites except the list · default</span>
+            <span class="opt-desc" data-i18n="opt.blacklist.desc">Blacklist. Check everywhere except the listed domains.</span>
           </span>
         </label>
         <div class="indent">
-          <textarea id="blacklist" rows="3" placeholder="по одному шаблону на строку&#10;staging.internal&#10;*.ads.example.com"></textarea>
+          <textarea id="blacklist" rows="3" data-i18n-placeholder="opt.blacklist.ph" placeholder="one pattern per line&#10;staging.internal&#10;*.ads.example.com"></textarea>
         </div>
 
         <label class="opt">
           <input type="radio" name="scopeMode" value="whitelist" />
           <span class="opt-text">
-            <span class="opt-title">Только сайты из списка</span>
-            <span class="opt-desc">Белый список. Проверяем только на указанных доменах.</span>
+            <span class="opt-title" data-i18n="opt.whitelist.title">Only sites from the list</span>
+            <span class="opt-desc" data-i18n="opt.whitelist.desc">Whitelist. Check only on the listed domains.</span>
           </span>
         </label>
         <div class="indent">
           <textarea id="whitelist" rows="3" placeholder="localhost:3000&#10;*.dev.example.com"></textarea>
         </div>
 
-        <p class="hint">Шаблон — host[:port]. «*» — любой фрагмент; шаблон без порта совпадает с любым портом.</p>
+        <p class="hint" data-i18n="opt.hint">Pattern — host[:port]. “*” matches any fragment; a pattern without a port matches any port.</p>
       </div>
     </section>
 
     <section class="sec">
       <div class="sec-head">
-        <h2>Серверная проверка</h2>
-        <p class="sec-desc">Адрес сервера и что сохранять, чтобы краулеры увидели страницу</p>
+        <h2 data-i18n="opt.server.h">Server check</h2>
+        <p class="sec-desc" data-i18n="opt.server.desc">Server address and what to upload so crawlers can see the page</p>
       </div>
       <div class="card">
         <label class="field">
-          <span class="field-label">Адрес сервера</span>
+          <span class="field-label" data-i18n="opt.serverUrl.label">Server URL</span>
           <input type="text" id="serverUrl" placeholder="http://localhost:3000" />
         </label>
 
         <div class="sub-block">
           <div class="sec-head">
-            <h3>Сохранение картинок</h3>
-            <p class="sec-desc">Чтобы og:image были доступны внешнему краулеру</p>
+            <h3 data-i18n="opt.images.h">Image upload</h3>
+            <p class="sec-desc" data-i18n="opt.images.desc">So og:image is reachable for an external crawler</p>
           </div>
           <label class="opt">
             <input type="radio" name="imageMode" value="unavailable" />
             <span class="opt-text">
-              <span class="opt-title">Только недоступные извне</span>
-              <span class="opt-desc">localhost и приватные адреса. Публичные картинки не трогаем.</span>
+              <span class="opt-title" data-i18n="opt.img.unavailable.title">Only externally unreachable</span>
+              <span class="opt-desc" data-i18n="opt.img.unavailable.desc">localhost and private addresses. Public images stay as is.</span>
             </span>
           </label>
           <label class="opt">
             <input type="radio" name="imageMode" value="all" />
             <span class="opt-text">
-              <span class="opt-title">Сохранять все og-картинки</span>
-              <span class="opt-desc">Все изображения выкладываются на сервер, ссылки переписываются.</span>
+              <span class="opt-title" data-i18n="opt.img.all.title">Upload all og images</span>
+              <span class="opt-desc" data-i18n="opt.img.all.desc">All images are uploaded to the server, links are rewritten.</span>
             </span>
           </label>
           <label class="opt">
             <input type="radio" name="imageMode" value="none" />
             <span class="opt-text">
-              <span class="opt-title">Не сохранять</span>
-              <span class="opt-desc">Раздаётся только HTML, ссылки на картинки остаются как есть.</span>
+              <span class="opt-title" data-i18n="opt.img.none.title">Do not upload</span>
+              <span class="opt-desc" data-i18n="opt.img.none.desc">Only the page is served; image links stay as is.</span>
             </span>
           </label>
         </div>
@@ -107,8 +122,8 @@
     </section>
 
     <div class="foot">
-      <button id="saveBtn" class="btn btn-primary" type="button">Сохранить изменения</button>
-      <span id="savedNote" class="saved" hidden>✓ Сохранено</span>
+      <button id="saveBtn" class="btn btn-primary" type="button" data-i18n="btn.save">Save changes</button>
+      <span id="savedNote" class="saved" hidden data-i18n="opt.saved">✓ Saved</span>
     </div>
   </div>
 

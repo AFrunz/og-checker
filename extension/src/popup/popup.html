@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>OG Checker</title>
@@ -11,7 +11,7 @@
       <div class="title">OG Checker</div>
       <div id="siteDomain" class="sub">—</div>
     </div>
-    <label class="switch" title="Включить / выключить расширение">
+    <label class="switch" data-i18n-title="hdr.toggleTitle" title="Enable / disable the extension">
       <input type="checkbox" id="enabledToggle" />
       <span class="slider"></span>
     </label>
@@ -19,64 +19,64 @@
 
   <div class="tabs">
     <div class="track" role="tablist">
-      <button class="tab is-active" id="tabCheck" data-tab="check" type="button">Проверка</button>
-      <button class="tab" id="tabServer" data-tab="server" type="button">Сервер</button>
+      <button class="tab is-active" id="tabCheck" data-tab="check" type="button" data-i18n="tab.check">Check</button>
+      <button class="tab" id="tabServer" data-tab="server" type="button" data-i18n="tab.server">Server</button>
     </div>
   </div>
 
   <main>
     <!-- Вкладка «Проверка» -->
     <section class="panel is-active" id="panelCheck">
-      <div id="statusLine" class="status">Загрузка…</div>
+      <div id="statusLine" class="status" data-i18n="status.loading">Loading…</div>
       <div id="report" class="report"></div>
       <div class="actions">
-        <button id="recheckBtn" class="btn btn-outline btn-block" type="button">Проверить снова</button>
-        <button id="siteToggleBtn" class="btn btn-ghost btn-block" type="button" hidden>Отключить для этого сайта</button>
+        <button id="recheckBtn" class="btn btn-outline btn-block" type="button" data-i18n="btn.recheck">Check again</button>
+        <button id="siteToggleBtn" class="btn btn-ghost btn-block" type="button" hidden>Disable for this site</button>
       </div>
     </section>
 
     <!-- Вкладка «Сервер» -->
     <section class="panel" id="panelServer" hidden>
       <div class="srv-head">
-        <div class="srv-title">Серверная проверка</div>
-        <div class="srv-sub">Публичная ссылка, по которой краулеры соцсетей увидят страницу</div>
+        <div class="srv-title" data-i18n="srv.title">Server check</div>
+        <div class="srv-sub" data-i18n="srv.sub">A public link where social crawlers can see the page</div>
       </div>
 
       <div id="sessionBox" class="session">
         <div class="src-row" id="srcRow" hidden>
           <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>
           <span id="sessionPage" class="src-page"></span>
-          <span id="pageNote" class="page-note" hidden>другая страница</span>
+          <span id="pageNote" class="page-note" hidden data-i18n="note.otherPage">different page</span>
         </div>
-        <div class="page-note" id="sourceNote" hidden>снято из DOM после JS — реальный краулер может видеть страницу иначе</div>
+        <div class="page-note" id="sourceNote" hidden data-i18n="note.renderedSource">captured from the DOM after JS — a real crawler may see the page differently</div>
         <div class="link-row">
           <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l6-6M10.5 6.5l1-1a4 4 0 0 1 6 6l-1 1M13.5 17.5l-1 1a4 4 0 0 1-6-6l1-1"/></svg>
           <a id="sessionLink" class="link" target="_blank" rel="noopener"></a>
-          <button id="copyBtn" class="icon-btn" type="button" title="Скопировать ссылку">
+          <button id="copyBtn" class="icon-btn" type="button" data-i18n-title="copy.title" title="Copy link">
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
         <div class="timer-row">
           <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
           <span id="timer" class="timer-val">–:–</span>
-          <span class="timer-cap">до удаления сессии</span>
+          <span class="timer-cap" data-i18n="timer.cap">until the session is deleted</span>
         </div>
         <div class="row">
-          <button id="extendBtn" class="btn btn-outline" type="button">Продлить +15 мин</button>
-          <button id="stopBtn" class="btn btn-danger" type="button">Остановить</button>
+          <button id="extendBtn" class="btn btn-outline" type="button" data-i18n="btn.extend">Extend +15 min</button>
+          <button id="stopBtn" class="btn btn-danger" type="button" data-i18n="btn.stop">Stop</button>
         </div>
       </div>
 
-      <button id="sendBtn" class="btn btn-primary btn-block" type="button">Отправить страницу на сервер</button>
+      <button id="sendBtn" class="btn btn-primary btn-block" type="button">Send page to server</button>
       <div id="serverError" class="error" hidden></div>
-      <div class="srv-note">Ссылка живёт 15 минут.</div>
+      <div class="srv-note" data-i18n="srv.note">The link lives for 15 minutes.</div>
     </section>
   </main>
 
   <footer class="ftr">
     <a href="#" id="openOptions" class="foot-link">
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span>Настройки</span>
+      <span data-i18n="foot.settings">Settings</span>
     </a>
     <span class="ver">v0.1</span>
   </footer>

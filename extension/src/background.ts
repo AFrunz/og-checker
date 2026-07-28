@@ -4,6 +4,7 @@
  * и как background-скрипт (Firefox).
  */
 import browser, { type Runtime } from 'webextension-polyfill';
+import { getT } from './lib/i18n';
 import { PROFILES } from './lib/profiles';
 import { getTagAll } from './lib/parser';
 import { shouldCheckUrl } from './lib/scope';
@@ -129,7 +130,7 @@ async function runCheck(tabId: number, url: string, tags: MetaTag[], staticTags:
   const profiles = PROFILES.filter((p) => settings.networks.includes(p.id));
   const imageUrls = collectImageUrls(profiles, tags);
   const imageInfo = await probeImages(imageUrls, url);
-  const report = validate(profiles, tags, imageInfo, staticTags);
+  const report = validate(profiles, tags, imageInfo, staticTags, settings.language);
 
   await setBadge(tabId, report.level);
   await saveResult(tabId, { status: 'done', url, tags, report, checkedAt: Date.now() });
@@ -238,11 +239,12 @@ async function collectImagesForUpload(tags: MetaTag[], pageUrl: string, imageMod
 
 async function createServerSession(tabId: number): Promise<ServerSession> {
   const settings = await loadSettings();
+  const t = getT(settings.language);
   const serverUrl = settings.serverUrl.replace(/\/+$/, '');
-  if (!serverUrl) throw new Error('Адрес сервера не задан в настройках');
+  if (!serverUrl) throw new Error(t('err.noServerUrl'));
 
   const page = (await browser.tabs.sendMessage(tabId, { type: 'ogc:getSnapshot' })) as PageSnapshot | undefined;
-  if (!page) throw new Error('Не удалось получить данные страницы');
+  if (!page) throw new Error(t('err.noPageData'));
 
   // Честная симуляция краулера: теги из статического HTML (без JS).
   // Если исходник получить не удалось — фолбэк на DOM после JS с пометкой.
@@ -257,6 +259,7 @@ async function createServerSession(tabId: number): Promise<ServerSession> {
     body: JSON.stringify({
       tags,
       source,
+      lang: settings.language,
       pageUrl: page.url,
       title: page.title,
       images,
@@ -265,7 +268,7 @@ async function createServerSession(tabId: number): Promise<ServerSession> {
   });
   if (!resp.ok) {
     const text = await resp.text().catch(() => '');
-    throw new Error(`Сервер ответил ${resp.status}: ${text.slice(0, 200)}`);
+    throw new Error(t('err.serverResponded', { status: resp.status, text: text.slice(0, 200) }));
   }
   const session = (await resp.json()) as { id: string; publicUrl: string; expiresAt: number; ownerToken: string };
 

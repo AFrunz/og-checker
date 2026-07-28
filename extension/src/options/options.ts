@@ -1,8 +1,9 @@
 /* Страница настроек. */
+import { applyI18n, getT } from '../lib/i18n';
 import { PROFILES } from '../lib/profiles';
 import { parseDomainList } from '../lib/scope';
 import { loadSettings, saveSettings } from '../lib/settings';
-import type { ImageMode, ScopeMode } from '../lib/types';
+import type { ImageMode, Lang, ScopeMode } from '../lib/types';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -31,8 +32,15 @@ function renderNetworks(selected: string[]): void {
   }
 }
 
+function applyLanguage(lang: Lang): void {
+  document.documentElement.lang = lang;
+  applyI18n(document, getT(lang));
+}
+
 async function load(): Promise<void> {
   const s = await loadSettings();
+  applyLanguage(s.language);
+  $<HTMLSelectElement>('language').value = s.language;
   $<HTMLInputElement>('enabled').checked = s.enabled;
   renderNetworks(s.networks);
   // 'single' больше не поддерживается в UI — трактуем его как чёрный список.
@@ -47,6 +55,7 @@ async function save(): Promise<void> {
   const prev = await loadSettings();
   await saveSettings({
     ...prev,
+    language: $<HTMLSelectElement>('language').value as Lang,
     enabled: $<HTMLInputElement>('enabled').checked,
     networks: [...document.querySelectorAll<HTMLInputElement>('#networks input:checked')].map((el) => el.value),
     scopeMode: radio('scopeMode') as ScopeMode,
@@ -60,4 +69,12 @@ async function save(): Promise<void> {
 }
 
 $('saveBtn').addEventListener('click', () => void save());
+// Язык — не часть формы: применяется и сохраняется сразу при выборе,
+// без кнопки «Сохранить» (иначе popup остаётся на старом языке).
+$<HTMLSelectElement>('language').addEventListener('change', async (e) => {
+  const language = (e.target as HTMLSelectElement).value as Lang;
+  applyLanguage(language);
+  const prev = await loadSettings();
+  await saveSettings({ ...prev, language });
+});
 void load();

@@ -30,8 +30,19 @@ test('og:* рендерится через property, twitter:* — через na
 
 test('rendered-источник добавляет предупреждение, static — нет', () => {
   const base = { title: 'T', pageUrl: 'http://localhost/', tags: [] };
-  assert.match(renderPreviewHtml({ ...base, source: 'rendered' }), /после исполнения JS/);
-  assert.ok(!/после исполнения JS/.test(renderPreviewHtml({ ...base, source: 'static' })));
+  assert.match(renderPreviewHtml({ ...base, source: 'rendered' }), /after JS execution/);
+  assert.ok(!/after JS execution/.test(renderPreviewHtml({ ...base, source: 'static' })));
+});
+
+test('локализация превью: en по умолчанию, ru по запросу', () => {
+  const base = { title: 'T', pageUrl: 'http://localhost/', tags: [], source: 'static' as const };
+  const en = renderPreviewHtml(base);
+  assert.match(en, /<html lang="en">/);
+  assert.match(en, /OG Checker preview page/);
+  const ru = renderPreviewHtml({ ...base, lang: 'ru', source: 'rendered' });
+  assert.match(ru, /<html lang="ru">/);
+  assert.match(ru, /Превью-страница OG Checker/);
+  assert.match(ru, /после исполнения JS/);
 });
 
 test('escapeHtml экранирует все спецсимволы', () => {

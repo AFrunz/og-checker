@@ -5,7 +5,8 @@
  * о картинках (доставать их по сети — задача background), возвращают
  * отчёт с уровнями ok/warning/error по каждой соцсети и итоговым уровнем.
  */
-import type { Check, ImageInfoMap, ImageRule, Level, MetaTag, NetworkReport, Profile, Report } from './types';
+import { getT, type Translate } from './i18n';
+import type { Check, ImageInfoMap, ImageRule, Lang, Level, MetaTag, NetworkReport, Profile, Report } from './types';
 
 const LEVELS: Record<Level, number> = { ok: 0, warning: 1, error: 2 };
 
@@ -42,6 +43,7 @@ function checkTag(
   tags: MetaTag[],
   key: string,
   severity: Level,
+  t: Translate,
   fallbacks?: Record<string, string>,
   staticTags?: MetaTag[] | null
 ): Check {
@@ -53,38 +55,28 @@ function checkTag(
       const usedKey = via ?? key;
       const staticValue = firstValue(staticTags, usedKey);
       if (staticValue === null) {
-        return {
-          tag: key,
-          status: 'warning',
-          value,
-          message: `${usedKey} появляется только после JS — краулеры его не увидят`
-        };
+        return { tag: key, status: 'warning', value, message: t('v.jsOnly', { tag: usedKey }) };
       }
       if (staticValue !== value) {
-        return {
-          tag: key,
-          status: 'warning',
-          value,
-          message: `JS меняет значение (краулер увидит: «${staticValue}»)`
-        };
+        return { tag: key, status: 'warning', value, message: t('v.jsChanged', { value: staticValue }) };
       }
     }
-    return { tag: key, status: 'ok', value, message: via ? `используется ${via}` : 'ок' };
+    return { tag: key, status: 'ok', value, message: via ? t('v.uses', { tag: via }) : t('v.ok') };
   }
   const present = hasTag(tags, key);
   return {
     tag: key,
     status: severity,
     value: null,
-    message: present ? 'пустое значение' : 'тег отсутствует'
+    message: present ? t('v.empty') : t('v.missing')
   };
 }
 
 /** Человекочитаемый физический размер файла. */
-function formatBytes(bytes?: number): string | null {
+function formatBytes(t: Translate, bytes?: number): string | null {
   if (bytes == null) return null;
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
-  return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} ${t('unit.mb')}`;
+  return `${Math.max(1, Math.round(bytes / 1024))} ${t('unit.kb')}`;
 }
 
 /** Проверка картинки по правилам профиля; null — тега нет (это уже отражено в required/recommended). */
@@ -92,6 +84,7 @@ function checkImage(
   rule: ImageRule,
   tags: MetaTag[],
   imageInfo: ImageInfoMap,
+  t: Translate,
   fallbacks?: Record<string, string>
 ): Check | null {
   const { value: url } = resolveTag(tags, rule.tag, rule.fallbackTag ? { [rule.tag]: rule.fallbackTag } : fallbacks);
@@ -99,32 +92,33 @@ function checkImage(
 
   const info = imageInfo[url];
   if (!info) {
-    return { tag: rule.tag, status: 'warning', value: url, message: 'картинка не проверялась' };
+    return { tag: rule.tag, status: 'warning', value: url, message: t('v.imgUnchecked') };
   }
   if (rule.reachable && !info.reachable) {
-    return { tag: rule.tag, status: 'error', value: url, message: 'картинка недоступна' };
+    return { tag: rule.tag, status: 'error', value: url, message: t('v.imgUnreachable') };
   }
-  const size = formatBytes(info.bytes);
+  const size = formatBytes(t, info.bytes);
   const sizeSuffix = size ? ` (${size})` : '';
   const dims = info.width && info.height ? `${info.width}×${info.height}` : null;
-  if (info.width && info.height) {
-    if ((rule.minWidth && info.width < rule.minWidth) || (rule.minHeight && info.height < rule.minHeight)) {
+  if (dims) {
+    const actual = `${dims}${sizeSuffix}`;
+    if ((rule.minWidth && info.width! < rule.minWidth) || (rule.minHeight && info.height! < rule.minHeight)) {
       return {
         tag: rule.tag,
         status: 'error',
         value: url,
-        message: `картинка ${dims}${sizeSuffix} меньше минимума ${rule.minWidth}×${rule.minHeight}`
+        message: t('v.imgTooSmall', { actual, min: `${rule.minWidth}×${rule.minHeight}` })
       };
     }
     if (
-      (rule.recommendedWidth && info.width < rule.recommendedWidth) ||
-      (rule.recommendedHeight && info.height < rule.recommendedHeight)
+      (rule.recommendedWidth && info.width! < rule.recommendedWidth) ||
+      (rule.recommendedHeight && info.height! < rule.recommendedHeight)
     ) {
       return {
         tag: rule.tag,
         status: 'warning',
         value: url,
-        message: `картинка ${dims}${sizeSuffix} меньше рекомендуемых ${rule.recommendedWidth}×${rule.recommendedHeight}`
+        message: t('v.imgBelowRec', { actual, rec: `${rule.recommendedWidth}×${rule.recommendedHeight}` })
       };
     }
   }
@@ -132,29 +126,36 @@ function checkImage(
     tag: rule.tag,
     status: 'ok',
     value: url,
-    message: dims ? `картинка ок (${dims}${size ? `, ${size}` : ''})` : size ? `картинка доступна (${size})` : 'картинка доступна'
+    message: dims
+      ? t('v.imgOk', { detail: `${dims}${size ? `, ${size}` : ''}` })
+      : size
+        ? t('v.imgReachableDetail', { detail: size })
+        : t('v.imgReachable')
   };
 }
 
 /**
  * Проверка одного профиля.
  * @param staticTags теги из исходного HTML (без JS); null/undefined — сверка недоступна
+ * @param lang язык сообщений в отчёте (по умолчанию английский)
  */
 export function validateProfile(
   profile: Profile,
   tags: MetaTag[],
   imageInfo: ImageInfoMap,
-  staticTags?: MetaTag[] | null
+  staticTags?: MetaTag[] | null,
+  lang: Lang = 'en'
 ): NetworkReport {
+  const t = getT(lang);
   const checks: Check[] = [];
   for (const key of profile.required) {
-    checks.push(checkTag(tags, key, 'error', profile.fallbacks, staticTags));
+    checks.push(checkTag(tags, key, 'error', t, profile.fallbacks, staticTags));
   }
   for (const key of profile.recommended) {
-    checks.push(checkTag(tags, key, 'warning', profile.fallbacks, staticTags));
+    checks.push(checkTag(tags, key, 'warning', t, profile.fallbacks, staticTags));
   }
   if (profile.image) {
-    const imgCheck = checkImage(profile.image, tags, imageInfo, profile.fallbacks);
+    const imgCheck = checkImage(profile.image, tags, imageInfo, t, profile.fallbacks);
     if (imgCheck) checks.push(imgCheck);
   }
   const level = checks.reduce<Level>((acc, c) => worst(acc, c.status), 'ok');
@@ -166,9 +167,10 @@ export function validate(
   profiles: Profile[],
   tags: MetaTag[],
   imageInfo: ImageInfoMap,
-  staticTags?: MetaTag[] | null
+  staticTags?: MetaTag[] | null,
+  lang: Lang = 'en'
 ): Report {
-  const networks = profiles.map((p) => validateProfile(p, tags, imageInfo, staticTags));
+  const networks = profiles.map((p) => validateProfile(p, tags, imageInfo, staticTags, lang));
   const level = networks.reduce<Level>((acc, n) => worst(acc, n.level), 'ok');
   return { level, networks, tagCount: tags.length };
 }

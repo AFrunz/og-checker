@@ -50,6 +50,7 @@ interface UploadImage {
 interface CreateBody {
   tags?: unknown;
   source?: unknown;
+  lang?: unknown;
   pageUrl?: unknown;
   title?: unknown;
   images?: unknown;
@@ -138,7 +139,7 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
   // -------------------------------------------------------------------------
 
   app.post('/api/sessions', createLimiter, async (req: Request, res: Response) => {
-    const { tags, source, pageUrl, title, images = [], ttlMinutes } = (req.body ?? {}) as CreateBody;
+    const { tags, source, lang, pageUrl, title, images = [], ttlMinutes } = (req.body ?? {}) as CreateBody;
 
     if (!Array.isArray(tags)) {
       res.status(400).json({ error: 'tags array is required' });
@@ -200,7 +201,8 @@ export function createApp(redis: RedisLike, stats: Stats = nullStats): express.E
       title: meta.title,
       pageUrl: meta.pageUrl,
       tags: finalTags,
-      source: source === 'rendered' ? 'rendered' : 'static'
+      source: source === 'rendered' ? 'rendered' : 'static',
+      lang: lang === 'ru' ? 'ru' : 'en'
     });
     await store.setHtml(id, html);
     await store.touch(id, ttlMs); // hSet не сбрасывает TTL, но фиксируем явно

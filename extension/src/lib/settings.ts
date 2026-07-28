@@ -7,6 +7,7 @@ import type { Settings } from './types';
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
+  language: 'en',
   networks: ['facebook', 'vk', 'telegram', 'twitter', 'linkedin'],
   scopeMode: 'blacklist',
   singleDomain: '',

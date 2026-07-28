@@ -36,14 +36,14 @@ test('отсутствие обязательного тега -> error', () => 
   const check = res.checks.find((c) => c.tag === 'og:title');
   assert.ok(check);
   assert.equal(check.status, 'error');
-  assert.match(check.message, /отсутствует/);
+  assert.match(check.message, /missing/);
 });
 
 test('пустое значение обязательного тега -> error с отдельным сообщением', () => {
   const tags = FULL_TAGS.map((x) => (x.key === 'og:title' ? t('og:title', '') : x));
   const res = validateProfile(profile('facebook'), tags, IMG_OK);
   assert.equal(res.level, 'error');
-  assert.match(res.checks.find((c) => c.tag === 'og:title')!.message, /пустое/);
+  assert.match(res.checks.find((c) => c.tag === 'og:title')!.message, /empty/);
 });
 
 test('отсутствие рекомендуемого тега -> warning', () => {
@@ -70,9 +70,9 @@ test('недоступная картинка -> error', () => {
   const info: ImageInfoMap = { 'https://cdn.example.com/pic.png': { reachable: false } };
   const res = validateProfile(profile('facebook'), FULL_TAGS, info);
   assert.equal(res.level, 'error');
-  const imgCheck = res.checks.find((c) => c.tag === 'og:image' && /картинка/.test(c.message));
+  const imgCheck = res.checks.find((c) => c.tag === 'og:image' && /image/.test(c.message));
   assert.ok(imgCheck);
-  assert.match(imgCheck.message, /недоступна/);
+  assert.match(imgCheck.message, /unreachable/);
 });
 
 test('картинка меньше минимума -> error, меньше рекомендуемой -> warning', () => {
@@ -105,7 +105,7 @@ test('тег только в DOM (нет в статике) -> warning про JS
   const check = res.checks.find((c) => c.tag === 'og:title');
   assert.ok(check);
   assert.equal(check.status, 'warning');
-  assert.match(check.message, /только после JS/);
+  assert.match(check.message, /only after JS/);
   assert.equal(res.level, 'warning');
 });
 
@@ -133,4 +133,10 @@ test('статика совпадает или недоступна (null) -> б
   assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, FULL_TAGS).level, 'ok');
   assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK, null).level, 'ok');
   assert.equal(validateProfile(profile('facebook'), FULL_TAGS, IMG_OK).level, 'ok');
+});
+
+test('lang=ru переключает сообщения отчёта на русский', () => {
+  const tags = FULL_TAGS.filter((x) => x.key !== 'og:title');
+  const res = validateProfile(profile('facebook'), tags, IMG_OK, null, 'ru');
+  assert.match(res.checks.find((c) => c.tag === 'og:title')!.message, /отсутствует/);
 });

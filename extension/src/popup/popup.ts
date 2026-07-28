@@ -1,7 +1,8 @@
 /* Popup: статус проверки активной вкладки, глобальный ползунок, серверная сессия. */
 import browser from 'webextension-polyfill';
+import { applyI18n, getT, pluralForm, type Translate } from '../lib/i18n';
 import { loadSettings, saveSettings } from '../lib/settings';
-import type { Level, Settings, ServerSession, TabResult } from '../lib/types';
+import type { Lang, Level, Settings, ServerSession, TabResult } from '../lib/types';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -10,28 +11,13 @@ let currentHost: string | null = null;
 let currentUrl: string | null = null;
 let timerInterval: ReturnType<typeof setInterval> | undefined;
 let currentSession: ServerSession | null = null;
-
-const STATUS_TEXT: Record<string, string> = {
-  disabled: 'Расширение выключено',
-  skipped: 'Страница вне области проверки',
-  busy: 'Проверка выполняется…',
-  ok: 'Разметка в порядке',
-  warning: 'Есть замечания',
-  error: 'Найдены ошибки'
-};
+let lang: Lang = 'en';
+let t: Translate = getT(lang);
 
 function statusSvg(level: Level): string {
   if (level === 'ok') return '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.4l2.4 2.4 4.6-5"/></svg>';
   if (level === 'error') return '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>';
   return '<svg class="ico" viewBox="0 0 24 24"><path d="M12 4.5l8.5 14.5h-17z"/><path d="M12 10v4"/><path d="M12 16.8h.01"/></svg>';
-}
-
-function pluralRu(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
 }
 
 function formatPage(url: string): string {
@@ -103,7 +89,7 @@ function renderSkeleton(count = 5): void {
 function showBusy(): void {
   const statusLine = $('statusLine');
   statusLine.className = 'status';
-  statusLine.textContent = STATUS_TEXT.busy;
+  statusLine.textContent = t('status.busy');
   renderSkeleton();
 }
 
@@ -121,13 +107,13 @@ function renderReport(result: TabResult | null): void {
     }
     recheck.disabled = false;
     statusLine.className = 'status';
-    statusLine.textContent = 'Нет данных — обновите страницу';
+    statusLine.textContent = t('status.noData');
     return;
   }
   if (result.status === 'disabled' || result.status === 'skipped') {
     recheck.disabled = true;
     statusLine.className = 'status ' + result.status;
-    statusLine.textContent = STATUS_TEXT[result.status];
+    statusLine.textContent = t('status.' + result.status);
     return;
   }
   recheck.disabled = false;
@@ -135,7 +121,7 @@ function renderReport(result: TabResult | null): void {
   const report = result.report;
   if (!report) return;
   statusLine.className = 'status ' + report.level;
-  statusLine.textContent = STATUS_TEXT[report.level];
+  statusLine.textContent = t('status.' + report.level);
 
   for (const net of report.networks) {
     const details = document.createElement('details');
@@ -146,8 +132,8 @@ function renderReport(result: TabResult | null): void {
     const problems = net.checks.filter((c) => c.status !== 'ok').length;
     let countText: string;
     if (net.level === 'ok') countText = `${total}/${total}`;
-    else if (net.level === 'error') countText = `${problems} ${pluralRu(problems, 'ошибка', 'ошибки', 'ошибок')}`;
-    else countText = `${problems} ${pluralRu(problems, 'замечание', 'замечания', 'замечаний')}`;
+    else if (net.level === 'error') countText = `${problems} ${pluralForm(lang, problems, 'errors')}`;
+    else countText = `${problems} ${pluralForm(lang, problems, 'warnings')}`;
 
     const summary = document.createElement('summary');
     const left = document.createElement('span');
@@ -197,6 +183,7 @@ function renderReport(result: TabResult | null): void {
 
 function renderSiteToggle(settings: Settings): void {
   const btn = $<HTMLButtonElement>('siteToggleBtn');
+  console.log(112);
   if (!settings.enabled || !currentHost) {
     btn.hidden = true;
     return;
@@ -206,7 +193,8 @@ function renderSiteToggle(settings: Settings): void {
   const listed = list.includes(currentHost);
   const checked = wl ? listed : !listed; // проверяется ли сейчас этот сайт
   btn.hidden = false;
-  btn.textContent = checked ? 'Отключить для этого сайта' : 'Включить на этом сайте';
+  console.log(t('site.disable'));
+  btn.textContent = checked ? t('site.disable') : t('site.enable');
 }
 
 async function toggleSite(): Promise<void> {
@@ -222,7 +210,6 @@ async function toggleSite(): Promise<void> {
   if (checked) { wl ? remove() : add(); } // выключаем проверку
   else { wl ? add() : remove(); }        // включаем проверку
   await saveSettings({ ...s, [key]: list });
-  setTimeout(() => void init(), 300);
 }
 
 // ---------------------------------------------------------------------------
@@ -232,11 +219,11 @@ async function toggleSite(): Promise<void> {
 function updateSendLabel(): void {
   const btn = $('sendBtn');
   if (currentSession) {
-    btn.textContent = 'Снять и отправить заново';
+    btn.textContent = t('btn.resend');
     btn.classList.remove('btn-primary');
     btn.classList.add('btn-outline');
   } else {
-    btn.textContent = 'Отправить страницу на сервер';
+    btn.textContent = t('btn.send');
     btn.classList.remove('btn-outline');
     btn.classList.add('btn-primary');
   }
@@ -256,7 +243,7 @@ function renderSession(session: ServerSession | null, remainingMs?: number): voi
     ($('srcRow') as HTMLElement).hidden = true;
     ($('sourceNote') as HTMLElement).hidden = true;
     link.removeAttribute('href');
-    link.textContent = 'Сессия не создана';
+    link.textContent = t('srv.noSession');
     link.classList.add('inactive');
     $('timer').textContent = '–:–';
     extend.disabled = true;
@@ -332,7 +319,7 @@ async function sessionAction(path: string, method: 'POST' | 'DELETE'): Promise<v
       credentials: 'include'
     });
     if (!resp.ok && resp.status !== 404) {
-      throw new Error('Сервер ответил ' + resp.status);
+      throw new Error(t('err.serverStatus', { status: resp.status }));
     }
     if (method === 'DELETE' || resp.status === 404) {
       await browser.runtime.sendMessage({ type: 'ogc:clearSession' });
@@ -379,12 +366,30 @@ async function init(): Promise<void> {
   }
 
   const settings = await loadSettings();
-  const state = (await browser.runtime.sendMessage({ type: 'ogc:getState', tabId: activeTabId })) as PopupState;
+  lang = settings.language;
+  t = getT(lang);
+  applyI18n(document, t);
   $<HTMLInputElement>('enabledToggle').checked = settings.enabled;
-  renderReport(state.result);
   renderSiteToggle(settings);
+
+  const state = (await browser.runtime.sendMessage({ type: 'ogc:getState', tabId: activeTabId })) as PopupState;
+  renderReport(state.result);
   void refreshSessionFromServer(state.serverSession);
 }
+console.log(1);
+// Popup реагирует на изменения без таймаутов: смена настроек (в т.ч. со
+// страницы настроек) перерисовывает всё, свежий результат проверки от
+// background обновляет отчёт, как только он готов.
+browser.storage.onChanged.addListener((changes) => {
+  console.log(changes);
+  if (changes.settings) {
+    void init();
+    return;
+  }
+  if (activeTabId != null && changes['result:' + activeTabId]) {
+    renderReport((changes['result:' + activeTabId].newValue as TabResult) ?? null);
+  }
+});
 
 $('tabCheck').addEventListener('click', () => activateTab('check'));
 $('tabServer').addEventListener('click', () => activateTab('server'));
@@ -392,14 +397,12 @@ $('tabServer').addEventListener('click', () => activateTab('server'));
 $<HTMLInputElement>('enabledToggle').addEventListener('change', async (e) => {
   const settings = await loadSettings();
   await saveSettings({ ...settings, enabled: (e.target as HTMLInputElement).checked });
-  setTimeout(() => void init(), 300); // дать background перепроверить вкладку
 });
 
 $('recheckBtn').addEventListener('click', async () => {
   $<HTMLButtonElement>('recheckBtn').disabled = true;
   showBusy();
   await browser.runtime.sendMessage({ type: 'ogc:recheck', tabId: activeTabId });
-  setTimeout(() => void init(), 500);
 });
 
 $('siteToggleBtn').addEventListener('click', () => void toggleSite());
@@ -412,14 +415,14 @@ $<HTMLButtonElement>('sendBtn').addEventListener('click', async () => {
   const btn = $<HTMLButtonElement>('sendBtn');
   showServerError('');
   btn.disabled = true;
-  btn.textContent = 'Отправка…';
+  btn.textContent = t('btn.sending');
   try {
     const res = (await browser.runtime.sendMessage({ type: 'ogc:createSession', tabId: activeTabId })) as {
       ok: boolean;
       session?: ServerSession;
       error?: string;
     };
-    if (!res.ok || !res.session) throw new Error(res.error ?? 'неизвестная ошибка');
+    if (!res.ok || !res.session) throw new Error(res.error ?? t('err.unknown'));
     renderSession(res.session);
   } catch (e) {
     showServerError((e as Error).message);
