@@ -52,11 +52,13 @@ podman compose up --build            # npm run podman:up
 
 ### Расширение
 
-Сначала сборка: `npm run build --workspace extension` (для разработки — `npm run watch --workspace extension`).
+Готовые архивы приложены к каждому [релизу](https://github.com/AFrunz/og-checker/releases/latest) — ни Node, ни тулчейна не нужно. Рядом лежит `SHA256SUMS`. Содержимое обоих архивов одинаковое (манифест общий на оба браузера), различаются только расширением файла: Firefox ставит из `.xpi`.
 
-**Chrome:** `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка `extension/`.
+**Chrome:** скачайте `og-checker-<версия>-chrome.zip`, распакуйте в папку, которую не собираетесь удалять — Chrome держит распакованное расширение по этому пути, и перенос папки равносилен удалению. Дальше `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → выбрать папку. «Режим разработчика» должен оставаться включённым.
 
-**Firefox:** `about:debugging#/runtime/this-firefox` → «Загрузить временное дополнение» → `extension/manifest.json`. В Firefox host-разрешения выдаются вручную: разрешите доступ к сайтам в настройках дополнения.
+**Firefox:** скачайте `og-checker-<версия>-firefox.xpi`, затем `about:debugging#/runtime/this-firefox` → «Загрузить временное дополнение». Host-разрешения выдаются вручную: разрешите доступ к сайтам в настройках дополнения. Архив не подписан Mozilla, поэтому слетает при перезапуске браузера; для постоянной установки нужен Developer Edition, Nightly или ESR с `xpinstall.signatures.required` = `false` в `about:config`, дальше `about:addons` → шестерёнка → «Установить дополнение из файла».
+
+Собрать из исходников: `npm run build --workspace extension` (для разработки — `npm run watch --workspace extension`), дальше папка `extension/` подключается так же.
 
 ## Как это работает
 
@@ -117,6 +119,23 @@ curl "https://$DOMAIN/admin/stats?token=$ADMIN_TOKEN"
 ```
 
 Без `ADMIN_TOKEN` эндпоинт выключен (404), но статистика всё равно копится. day/week/month — скользящие окна (последние 1/7/30 UTC-суток). Можно и просто прочитать файл: `docker compose -f docker-compose.prod.yml exec server cat /data/stats.json`.
+
+## Выпуск релиза
+
+```bash
+npm version patch     # или minor / major
+git push --follow-tags
+```
+
+`npm version` поднимает версию в корневом `package.json` и через хук `version` раскладывает её по обоим воркспейсам и по `extension/manifest.json` — единственному файлу, который реально уезжает пользователю, — включая все четыре в коммит версии.
+
+Дальше релиз публикуется руками: Releases → «Draft a new release» → выбрать тег → «Publish release».
+
+Публикация запускает `.github/workflows/release.yml`: тот прогоняет проверки CI, собирает расширение и прикладывает к релизу `og-checker-<версия>-chrome.zip`, `og-checker-<версия>-firefox.xpi` и `SHA256SUMS`. Сам он релиз не создаёт, а черновики не трогает до публикации.
+
+Локально то же самое делает `npm run pack`. Он не соберёт архив, если версии в `package.json` и `manifest.json` разошлись или если манифест ссылается на файл, которого сборка не произвела.
+
+Если заливка упала, перезапустить можно из Actions → Release → «Run workflow», указав тег. Файлы перезаписываются, а не дублируются, так что повтор безопасен.
 
 ## Статус
 

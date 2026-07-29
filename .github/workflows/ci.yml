@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  # Те же проверки вызывает release.yml перед публикацией — через workflow_call,
+  # чтобы не держать вторую копию списка шагов, которая со временем отстанет.
+  workflow_call:
 
 jobs:
   test:

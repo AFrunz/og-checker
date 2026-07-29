@@ -1,0 +1,92 @@
+name: Release
+
+# Релиз публикуется руками через веб-интерфейс GitHub, поэтому триггер —
+# публикация релиза, а не пуш тега: workflow не создаёт релиз сам, а только
+# докладывает в него собранные архивы. Черновики события не поднимают.
+on:
+  release:
+    types: [published]
+  # Ручной перезапуск, если заливка упала, а релиз пересоздавать не хочется.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег существующего релиза, например v0.1.0'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+# Заливку не прерываем на середине: иначе к релизу пристанет часть файлов.
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.event.inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  # Отдельной job, а не первым шагом релиза: так несовпадение версии видно
+  # сразу, не дожидаясь полного прогона проверок.
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      # Имена архивов берутся из package.json, поэтому релиз с тегом без бампа
+      # версии получил бы файлы со старым номером. Совпадение версии в
+      # manifest.json дополнительно проверяет сам scripts/pack.mjs.
+      - name: Tag matches package.json
+        run: |
+          version="${TAG#v}"
+          pkg="$(node -p 'require("./package.json").version')"
+          if [ "$version" != "$pkg" ]; then
+            echo "Тег $TAG не совпадает с версией в package.json ($pkg)" >&2
+            exit 1
+          fi
+
+  # Переиспользуем проверки CI вместо копии шагов. Оговорка: reusable workflow
+  # берёт ref вызывающего события — для публикации релиза это коммит тега,
+  # а для ручного запуска ветка, из которой запустили.
+  check:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: [tag, check]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Pack
+        run: npm run pack
+
+      - name: Checksums
+        working-directory: dist
+        run: shasum -a 256 og-checker-*-chrome.zip og-checker-*-firefox.xpi > SHA256SUMS
+
+      # --clobber перезаписывает одноимённые файлы, поэтому повторный запуск
+      # не спотыкается о то, что часть архивов уже залита.
+      - name: Upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$TAG" --clobber \
+            dist/og-checker-*-chrome.zip \
+            dist/og-checker-*-firefox.xpi \
+            dist/SHA256SUMS

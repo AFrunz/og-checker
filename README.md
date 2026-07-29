@@ -52,11 +52,13 @@ Environment variables — see [server/src/config.ts](server/src/config.ts) (`POR
 
 ### Extension
 
-Build first: `npm run build --workspace extension` (for development — `npm run watch --workspace extension`).
+Ready-made archives are attached to every [release](https://github.com/AFrunz/og-checker/releases/latest) — no Node, no toolchain. `SHA256SUMS` is published next to them. Both archives hold identical files (one manifest covers both browsers) and differ only in extension, because Firefox installs from `.xpi`.
 
-**Chrome:** `chrome://extensions` → “Developer mode” → “Load unpacked” → the `extension/` folder.
+**Chrome:** download `og-checker-<version>-chrome.zip`, unzip it into a folder you intend to keep — Chrome loads an unpacked extension from that path, so moving or deleting the folder uninstalls it. Then `chrome://extensions` → “Developer mode” → “Load unpacked” → select the folder. Developer mode has to stay on.
 
-**Firefox:** `about:debugging#/runtime/this-firefox` → “Load Temporary Add-on” → `extension/manifest.json`. In Firefox, host permissions are granted manually: allow site access in the add-on settings.
+**Firefox:** download `og-checker-<version>-firefox.xpi`, then `about:debugging#/runtime/this-firefox` → “Load Temporary Add-on”. Host permissions are granted manually: allow site access in the add-on settings. The archive is not signed by Mozilla, so it disappears when Firefox restarts; a permanent install needs Developer Edition, Nightly or ESR with `xpinstall.signatures.required` set to `false` in `about:config`, and then `about:addons` → gear → “Install Add-on From File”.
+
+To build from source instead: `npm run build --workspace extension` (for development — `npm run watch --workspace extension`), then load the `extension/` folder the same way.
 
 ## How it works
 
@@ -117,6 +119,23 @@ curl "https://$DOMAIN/admin/stats?token=$ADMIN_TOKEN"
 ```
 
 Without `ADMIN_TOKEN` the endpoint is disabled (404), but stats are still recorded. day/week/month are rolling windows (last 1/7/30 UTC days). You can also just read the file: `docker compose -f docker-compose.prod.yml exec server cat /data/stats.json`.
+
+## Release
+
+```bash
+npm version patch     # or minor / major
+git push --follow-tags
+```
+
+`npm version` bumps the root `package.json` and, through the `version` hook, propagates the number to both workspaces and to `extension/manifest.json` — the one file that actually ships — including all four in the version commit.
+
+Then publish the release by hand: Releases → “Draft a new release” → pick the tag → “Publish release”.
+
+Publishing fires `.github/workflows/release.yml`, which re-runs the CI checks, packs the extension and attaches `og-checker-<version>-chrome.zip`, `og-checker-<version>-firefox.xpi` and `SHA256SUMS` to that release. It never creates the release itself, and drafts stay untouched until you publish them.
+
+`npm run pack` does the same packing locally. It refuses to build if the tag, `package.json` and `manifest.json` disagree on the version, or if the manifest references a file the build did not produce.
+
+If the upload fails, retry from Actions → Release → “Run workflow” with the tag as input. Assets are overwritten rather than duplicated, so re-running is safe.
 
 ## Status
 

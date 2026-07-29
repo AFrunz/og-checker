@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "pack": "npm run build --workspace extension && node scripts/pack.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "compose:up": "docker compose up --build",
@@ -17,7 +18,9 @@
     "podman:up": "podman compose up --build",
     "podman:down": "podman compose down",
     "deploy:up": "docker compose -f docker-compose.prod.yml up -d --build",
-    "deploy:down": "docker compose -f docker-compose.prod.yml down"
+    "deploy:down": "docker compose -f docker-compose.prod.yml down",
+    "sync-version": "node scripts/sync-version.mjs",
+    "version": "node scripts/sync-version.mjs && git add package.json extension/package.json server/package.json extension/manifest.json"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
